@@ -16,7 +16,7 @@ async function extractTextFromImage(imageBuffer, mimeType) {
         throw new Error("GEMINI_API_KEY is not set in the environment variables.");
     }
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const imageParts = [{
         inlineData: {
@@ -78,7 +78,7 @@ router.post('/import-pdf', isLoggedIn, upload.single('pdf'), async (req, res) =>
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const pdfFile = {
             inlineData: {
