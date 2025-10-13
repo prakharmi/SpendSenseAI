@@ -18,9 +18,9 @@ require('./config/passport-setup');
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 
-app.set('trust proxy', 1);
 
 const app = express();
+app.set('trust proxy', 1);
 
 const apiLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, 
