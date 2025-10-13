@@ -1,88 +1,170 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analytics | SpendSenseAI</title>
-    <link href="/output.css" rel="stylesheet">
+    <link href="/output.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body
+    class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size"
+  >
     <div class="flex flex-col min-h-screen">
-        <!-- Header -->
-        <header class="w-full px-4 sm:px-8 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <a href="/dashboard" class="flex items-center space-x-2">
-                    <span class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">SpendSenseAI</span>
-                </a>
-                <div class="flex items-center space-x-2 sm:space-x-4">
-                    <div id="profile-button-container"></div>
-                    <div class="relative">
-                        <button type="button" id="theme-menu-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
-                            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        </button>
-                        <div id="theme-menu" class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black dark:ring-white ring-opacity-5 py-1 z-10">
-                            <a href="#" class="flex items-center px-4 py-2 text-sm" data-theme="light">Light</a>
-                            <a href="#" class="flex items-center px-4 py-2 text-sm" data-theme="dark">Dark</a>
-                            <a href="#" class="flex items-center px-4 py-2 text-sm" data-theme="system">System</a>
-                        </div>
-                    </div>
-                </div>
+      <!-- Header -->
+      <header
+        class="w-full px-4 sm:px-8 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50"
+      >
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <a href="/dashboard" class="flex items-center space-x-2">
+            <span
+              class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white"
+              >SpendSenseAI</span
+            >
+          </a>
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <div id="profile-button-container"></div>
+            <div class="relative">
+              <button
+                type="button"
+                id="theme-menu-button"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700"
+              >
+                <svg
+                  class="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+              </button>
+              <div
+                id="theme-menu"
+                class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black dark:ring-white ring-opacity-5 py-1 z-10"
+              >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm"
+                  data-theme="light"
+                  >Light</a
+                >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm"
+                  data-theme="dark"
+                  >Dark</a
+                >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm"
+                  data-theme="system"
+                  >System</a
+                >
+              </div>
             </div>
-        </header>
+          </div>
+        </div>
+      </header>
 
-        <!-- Main Content -->
-        <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div id="welcome-message" class="mb-4">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Financial Analytics</h1>
-                <p class="mt-1 text-gray-600 dark:text-gray-400">A visual breakdown of your financial habits.</p>
-            </div>
+      <!-- Main Content -->
+      <main
+        class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      >
+        <div id="welcome-message" class="mb-4">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+            Financial Analytics
+          </h1>
+          <p class="mt-1 text-gray-600 dark:text-gray-400">
+            A visual breakdown of your financial habits.
+          </p>
+        </div>
 
-            <div id="time-frame-filter-container" class="mb-8">
-                <!-- Dropdown created by JS -->
-            </div>
-            
-            <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
+        <div id="time-frame-filter-container" class="mb-8">
+          <!-- Dropdown created by JS -->
+        </div>
 
-            <!-- Vertical Stack for All Charts -->
-            <div class="space-y-8">
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Expenses by Category</h2>
-                    <div id="category-chart-container" class="h-80"></div>
-                </div>
+        <div
+          id="summary-cards"
+          class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        ></div>
 
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Spending Trend</h2>
-                        <select id="category-trend-select" class="text-sm rounded-md border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 focus:ring-blue-500 focus:border-blue-500"></select>
-                    </div>
-                    <div id="category-trend-chart-container" class="h-80"></div>
-                </div>
-                
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Monthly Summary</h2>
-                    <div id="monthly-summary-chart-container" class="h-80"></div>
-                </div>
+        <!-- Vertical Stack for All Charts -->
+        <div class="space-y-8">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              Expenses by Category
+            </h2>
+            <div id="category-chart-container" class="h-80"></div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+                Spending Trend
+              </h2>
+              <select
+                id="category-trend-select"
+                class="text-sm rounded-md border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 focus:ring-blue-500 focus:border-blue-500"
+              ></select>
             </div>
-        </main>
-        
-        <!-- Footer -->
-        <footer class="w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
-             <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Created by Prakhar Mishra</p>
-                    <div class="flex space-x-6">
-                         <a href="mailto:prakharmishraa30@gmail.com" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Contact</a>
-                         <a href="https://github.com/prakharmi" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">About Us</a>
-                         <a href="https://github.com/prakharmi/Dormdeals" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">GitHub</a>
-                    </div>
-                </div>
+            <div id="category-trend-chart-container" class="h-80"></div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              Monthly Summary
+            </h2>
+            <div id="monthly-summary-chart-container" class="h-80"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer
+        class="w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700"
+      >
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div
+            class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
+          >
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Created by Prakhar Mishra
+            </p>
+            <div class="flex space-x-6">
+              <a
+                href="mailto:prakharmishraa30@gmail.com"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >Contact</a
+              >
+              <a
+                href="https://github.com/prakharmi"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >About Us</a
+              >
+              <a
+                href="https://github.com/prakharmi/Dormdeals"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >GitHub</a
+              >
             </div>
-        </footer>
+          </div>
+        </div>
+      </footer>
     </div>
     <script type="module" src="/analytics/js/index.js" defer></script>
-</body>
+  </body>
 </html>

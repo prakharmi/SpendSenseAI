@@ -1,68 +1,146 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SpendSenseAI</title>
-    <link href="/output.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
+    <link href="/output.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
 
-<body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size">
-             
+  <body
+    class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size"
+  >
     <div class="flex flex-col min-h-screen">
-        <header class="w-full px-4 sm:px-8 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <a href="/" class="flex items-center space-x-2"><span class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">SpendSenseAI</span></a>
-                <div class="flex items-center space-x-2">
-                    <div class="relative">
-                        <button type="button" id="theme-menu-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
-                             <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        </button>
-                        <div id="theme-menu" class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black dark:ring-white ring-opacity-5 py-1 z-10">
-                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" data-theme="light">Light</a>
-                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" data-theme="dark">Dark</a>
-                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" data-theme="system">System</a>
-                        </div>
-                    </div>
-                </div>
+      <header
+        class="w-full px-4 sm:px-8 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50"
+      >
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <a href="/" class="flex items-center space-x-2"
+            ><span
+              class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white"
+              >SpendSenseAI</span
+            ></a
+          >
+          <div class="flex items-center space-x-2">
+            <div class="relative">
+              <button
+                type="button"
+                id="theme-menu-button"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700"
+              >
+                <svg
+                  class="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+              </button>
+              <div
+                id="theme-menu"
+                class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black dark:ring-white ring-opacity-5 py-1 z-10"
+              >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  data-theme="light"
+                  >Light</a
+                >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  data-theme="dark"
+                  >Dark</a
+                >
+                <a
+                  href="#"
+                  class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  data-theme="system"
+                  >System</a
+                >
+              </div>
             </div>
-        </header>
+          </div>
+        </div>
+      </header>
 
-        <main class="flex-grow flex flex-col items-center justify-center text-center px-4 py-16">
-            <div id="auth-section">
-                <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
-                    Manage Your Finances with Ease
-                </h1>
-                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Track your income and expenses, visualize your spending, and take control of your financial life.
-                </p>
-                <div class="mt-8">
-                    <a href="/auth/google" 
-                       class="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-sm text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                        <img class="h-6 w-6 mr-3" src="https://www.svgrepo.com/show/50809/google.svg" alt="Google logo">
-                        Sign in with Google
-                    </a>
-                </div>
-            </div>
-        </main>
+      <main
+        class="flex-grow flex flex-col items-center justify-center text-center px-4 py-16"
+      >
+        <div id="auth-section">
+          <h1
+            class="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white"
+          >
+            Manage Your Finances with Ease
+          </h1>
+          <p
+            class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
+          >
+            Track your income and expenses, visualize your spending, and take
+            control of your financial life.
+          </p>
+          <div class="mt-8">
+            <a
+              href="/auth/google"
+              class="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-sm text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <img
+                class="h-6 w-6 mr-3"
+                src="https://www.svgrepo.com/show/50809/google.svg"
+                alt="Google logo"
+              />
+              Sign in with Google
+            </a>
+          </div>
+        </div>
+      </main>
 
-        <footer class="w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
-            <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Created by Prakhar Mishra</p>
-                    <div class="flex space-x-6">
-                        <a href="mailto:prakharmishraa30@gmail.com" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Contact</a>
-                        <a href="https://github.com/prakharmi" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">About Me</a>
-                        <a href="https://github.com/prakharmi/Finance-Assistant" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">GitHub</a>
-                    </div>
-                </div>
+      <footer
+        class="w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700"
+      >
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div
+            class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
+          >
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Created by Prakhar Mishra
+            </p>
+            <div class="flex space-x-6">
+              <a
+                href="mailto:prakharmishraa30@gmail.com"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >Contact</a
+              >
+              <a
+                href="https://github.com/prakharmi"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >About Me</a
+              >
+              <a
+                href="https://github.com/prakharmi/Finance-Assistant"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >GitHub</a
+              >
             </div>
-        </footer>
+          </div>
+        </div>
+      </footer>
     </div>
-    
+
     <script src="/script.js" defer></script>
-</body>
+  </body>
 </html>

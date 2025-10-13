@@ -18,9 +18,9 @@ SpendSenseAI is a modern, full-stack web application that helps users **track, m
 - **Manual Transaction Entry** — Add income and expenses through a clean, user-friendly form.
 - **Comprehensive Dashboard** — Paginated list of transactions with rich filtering.
 - **Dynamic Filtering** — Filter by type (income/expense), category, or custom date ranges.
-- **Data Visualization**  
-  - Doughnut chart: Expenses by Category  
-  - Bar chart: Monthly Income vs. Expenses  
+- **Data Visualization**
+  - Doughnut chart: Expenses by Category
+  - Bar chart: Monthly Income vs. Expenses
   - Line chart: Category-wise Spending Trends
 - **Multi-User Support** — Secure Google OAuth 2.0 login and private data access.
 
@@ -36,14 +36,14 @@ SpendSenseAI is a modern, full-stack web application that helps users **track, m
 
 ## 🛠️ Technology Stack
 
-| Area         | Technology                                                                 |
-|--------------|----------------------------------------------------------------------------|
-| **Frontend** | HTML5, CSS3, JavaScript , Tailwind CSS                     |
-| **Backend**  | Node.js, Express.js                                                       |
-| **Database** | MongoDB with Mongoose ODM                                                 |
-| **Auth**     | Passport.js with Google OAuth 2.0, express-session                        |
-| **AI / ML**  | Google Gemini API (for receipt & PDF parsing)                             |
-| **File Uploads** | Multer (server-side file handling)                                   |
+| Area             | Technology                                         |
+| ---------------- | -------------------------------------------------- |
+| **Frontend**     | HTML5, CSS3, JavaScript , Tailwind CSS             |
+| **Backend**      | Node.js, Express.js                                |
+| **Database**     | MongoDB with Mongoose ODM                          |
+| **Auth**         | Passport.js with Google OAuth 2.0, express-session |
+| **AI / ML**      | Google Gemini API (for receipt & PDF parsing)      |
+| **File Uploads** | Multer (server-side file handling)                 |
 
 ---
 
