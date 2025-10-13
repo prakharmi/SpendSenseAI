@@ -4,7 +4,7 @@ const router = express.Router();
 
 // Route to start the Google OAuth flow
 router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'] // Retrive the user's profile and email from google response
+  scope: ['profile', 'email']
 }));
 
 // URL user will be redirected to after sign in
@@ -16,10 +16,8 @@ router.get('/google/callback', passport.authenticate('google', {
 // Route to check if the user is logged in
 router.get('/me', (req, res) => {
   if (req.user) {
-    // If req.user exists, the user is authenticated
     res.status(200).json(req.user);
   } else {
-    // not authenticated
     res.status(401).json({ message: 'User is not logged in' });
   }
 });
