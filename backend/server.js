@@ -8,17 +8,16 @@ const passport = require('passport');
 const cors = require('cors');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const MongoStore = require('connect-mongo'); // ADDED: For persistent sessions
 
 // Load environment variables
 dotenv.config();
 
 require('./config/passport-setup'); 
 
-// Import API routes
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 
-// Initialize the express app
 const app = express();
 
 const apiLimiter = rateLimit({
@@ -30,18 +29,17 @@ const apiLimiter = rateLimit({
 });
 
 
-// --- GENERAL MIDDLEWARE ---
 app.use(express.json()); 
 app.use(cors({
   origin: true, 
   credentials: true
 }));
 
-// Session Middleware
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.DATABASE_URL }) // Use MongoDB to store sessions
 }));
 
 // Passport Middleware
@@ -71,11 +69,9 @@ app.get('/analytics', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'analytics', 'analytics.html'));
 });
 
-// Serve Static Files (CSS, JS, images, etc.)
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 
-// Database Connection Logic
 const DATABASE_URL = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/personal-finance';
 
 mongoose.connect(DATABASE_URL)
@@ -85,8 +81,7 @@ mongoose.connect(DATABASE_URL)
     process.exit(1);
   });
 
-// Define the port
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 10000;
 
 // Start the server
 app.listen(PORT, () => {
