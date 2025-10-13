@@ -83,7 +83,7 @@ mongoose.connect(DATABASE_URL)
     process.exit(1);
   });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 8080;
 
 // Start the server
 app.listen(PORT, () => {
