@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('receipt', file);
                 ui.showToast("Processing receipt...", "success");
                 try {
-                    const response = await fetch('http://localhost:8080/api/transactions/upload-receipt', { method: 'POST', body: formData, credentials: 'include' });
+                    const response = await fetch('/api/transactions/upload-receipt', { method: 'POST', body: formData, credentials: 'include' });
                     event.target.value = ''; // Reset file input
                     if (response.ok) {
                         const extractedData = await response.json();
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('pdf', file);
                 ui.showToast("Processing PDF...", "success");
                 try {
-                    const response = await fetch('http://localhost:8080/api/transactions/import-pdf', { method: 'POST', body: formData, credentials: 'include' });
+                    const response = await fetch('/api/transactions/import-pdf', { method: 'POST', body: formData, credentials: 'include' });
                     event.target.value = ''; // Reset file input
                     if (response.ok) {
                         const transactions = await response.json();
@@ -353,8 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadPageContent();
 
         } catch (error) {
-            // If any part of initialization fails, redirect to login.
-            window.location.href = '/frontend/';
+            window.location.href = '/';
         }
     };
     
