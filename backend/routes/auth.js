@@ -9,8 +9,8 @@ router.get('/google', passport.authenticate('google', {
 
 // URL user will be redirected to after sign in
 router.get('/google/callback', passport.authenticate('google', {
-  successRedirect: 'http://localhost:5500/frontend/dashboard/dashboard.html', // Redirect on success
-  failureRedirect: 'http://localhost:5500/frontend/index.html' // Redirect on failure
+  successRedirect: '/dashboard',
+  failureRedirect: '/'
 }));
 
 // Route to check if the user is logged in
@@ -28,7 +28,7 @@ router.get('/me', (req, res) => {
 router.get('/logout', (req, res, next) => {
     req.logout(function(err) {
         if (err) { return next(err); }
-        res.redirect('http://localhost:5500/frontend/index.html');
+        res.redirect('/');
     });
 });
 

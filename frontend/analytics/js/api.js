@@ -1,5 +1,5 @@
 // This module handles all communication with the backend analytics API.
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = '';
 
 // Fetches the currently authenticated user's data.
 export const fetchUserData = async () => {

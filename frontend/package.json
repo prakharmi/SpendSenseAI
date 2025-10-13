@@ -1,0 +1,19 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "The frontend for SpendSenseAI.",
+  "main": "index.js",
+  "scripts": {
+    "init-tailwind": "tailwindcss init -p",
+    "build": "tailwindcss -i ./input.css -o ./output.css",
+    "watch": "tailwindcss -i ./input.css -o ./output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3"
+  }
+}

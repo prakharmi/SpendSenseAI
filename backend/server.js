@@ -3,28 +3,38 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const analyticsRoutes = require('./routes/analytics');
-
-const session = require('express-session'); // For managing user sessions
+const session = require('express-session');
 const passport = require('passport');
 const cors = require('cors');
+const path = require('path');
+const rateLimit = require('express-rate-limit');
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
 require('./config/passport-setup'); 
 
-// Import routes
+// Import API routes
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 
 // Initialize the express app
 const app = express();
 
-// Middleware Setup
+const apiLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, 
+	max: 100, 
+	standardHeaders: true, 
+	legacyHeaders: false, 
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+});
+
+
+// --- GENERAL MIDDLEWARE ---
 app.use(express.json()); 
 app.use(cors({
-  origin: 'http://localhost:5500',
-  credentials: true // Allow cookies to be sent
+  origin: true, 
+  credentials: true
 }));
 
 // Session Middleware
@@ -35,31 +45,48 @@ app.use(session({
 }));
 
 // Passport Middleware
-app.use(passport.initialize()); // Initialize Passport
-app.use(passport.session()); // Allow Passport to use sessions
+app.use(passport.initialize());
+app.use(passport.session());
+
+// API Routes
+app.use('/api', apiLimiter); 
+app.use('/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// Frontend Page Routes
+app.get('/', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.redirect('/dashboard');
+  } else {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+  }
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'dashboard', 'dashboard.html'));
+});
+
+app.get('/analytics', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'analytics', 'analytics.html'));
+});
+
+// Serve Static Files (CSS, JS, images, etc.)
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
 
 // Database Connection Logic
 const DATABASE_URL = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/personal-finance';
 
 mongoose.connect(DATABASE_URL)
-  .then(() => console.log('Successfully connected to local MongoDB!'))
+  .then(() => console.log('Successfully connected to MongoDB!'))
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error.message);
     process.exit(1);
   });
 
-// API Routes
-app.use('/auth', authRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/analytics', analyticsRoutes);
-
 // Define the port
 const PORT = process.env.PORT || 8080;
-
-// A simple test route
-app.get('/', (req, res) => {
-  res.send('API is running!');
-});
 
 // Start the server
 app.listen(PORT, () => {

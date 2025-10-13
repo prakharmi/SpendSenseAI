@@ -4,29 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpendSenseAI</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="./output.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    backgroundImage: {
-                        'grid-light': "linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)",
-                        'grid-dark': "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-                    },
-                    backgroundSize: { 'grid-size': '25px 25px', }
-                },
-            },
-        };
-    </script>
 </head>
 
 <body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size">
@@ -34,7 +15,7 @@
     <div class="flex flex-col min-h-screen">
         <header class="w-full px-4 sm:px-8 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
             <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <a href="http://localhost:5500/frontend/index.html" class="flex items-center space-x-2"><span class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">SpendSenseAI</span></a>
+                <a href="/" class="flex items-center space-x-2"><span class="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">SpendSenseAI</span></a>
                 <div class="flex items-center space-x-2">
                     <div class="relative">
                         <button type="button" id="theme-menu-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
@@ -59,7 +40,7 @@
                     Track your income and expenses, visualize your spending, and take control of your financial life.
                 </p>
                 <div class="mt-8">
-                    <a href="http://localhost:8080/auth/google" 
+                    <a href="/auth/google" 
                        class="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-sm text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                         <img class="h-6 w-6 mr-3" src="https://www.svgrepo.com/show/50809/google.svg" alt="Google logo">
                         Sign in with Google
