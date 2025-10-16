@@ -56,6 +56,10 @@ app.use("/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
+app.get('/pleasedontsleep', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Frontend Page Routes
 app.get("/", (req, res) => {
   if (req.isAuthenticated()) {
