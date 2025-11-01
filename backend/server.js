@@ -37,6 +37,10 @@ app.use(
   }),
 );
 
+app.get('/pleasedontsleep', (req, res) => {
+  res.status(200).send('OK');
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
