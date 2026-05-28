@@ -95,6 +95,18 @@ app.use(express.json({ limit: "10kb" })); // Prevent JSON body bomb attacks
 // Prevents attacks like: { "email": { "$gt": "" } } which bypass auth in MongoDB
 // Must run AFTER express.json() so the body has been parsed
 // ---------------------------------------------------------------------------
+// Express 5.x makes req.query a strict getter. We must make it writable first.
+app.use((req, res, next) => {
+  const query = req.query; // Trigger getter
+  Object.defineProperty(req, "query", {
+    value: query,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
+  next();
+});
+
 app.use(mongoSanitize({
   replaceWith: "_", // Replace operators with underscore instead of silently deleting
   onSanitizeError: (req, res) => {
