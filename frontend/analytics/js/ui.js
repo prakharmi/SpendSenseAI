@@ -1,4 +1,19 @@
-// This module contains all functions that directly manipulate the DOM for the analytics page.
+// This module contains all DOM manipulation functions for the analytics page.
+
+// ---------------------------------------------------------------------------
+// XSS Prevention: HTML entity escaper
+// Any user-supplied string (category name, display name, etc.) MUST pass
+// through this before being injected into innerHTML.
+// ---------------------------------------------------------------------------
+const sanitize = (str) => {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+};
 
 // Helper Functions
 const isDarkMode = () => document.documentElement.classList.contains("dark");
@@ -145,7 +160,7 @@ export const renderMonthlySummaryChart = (container, data) => {
 export const renderCategoryTrendChart = (container, data, categoryName) => {
   container.innerHTML = '<canvas id="category-trend-chart"></canvas>';
   if (data.length === 0) {
-    container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 pt-16">No spending data for ${categoryName}.</p>`;
+    container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 pt-16">No spending data for ${sanitize(categoryName)}.</p>`;
     return;
   }
   const monthNames = [
@@ -175,7 +190,7 @@ export const renderCategoryTrendChart = (container, data, categoryName) => {
       labels: labels,
       datasets: [
         {
-          label: `Spending in ${categoryName}`,
+          label: `Spending in ${sanitize(categoryName)}`,
           data: amounts,
           borderColor: "#3B82F6",
           backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -245,9 +260,11 @@ export const createDropdown = (name, options, defaultLabel, onSelect) => {
 
 // Renders the user's profile button in the header.
 export const renderProfileButton = (container, user) => {
+  // user.image comes from the Mongoose User model (set during Google OAuth)
+  // user.photos is a Passport profile property not stored in our DB
   const userPicture =
-    user.photos?.[0]?.value ||
-    `https://ui-avatars.com/api/?name=${user.displayName.replace(" ", "+")}&background=random&color=fff`;
+    user.image ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random&color=fff`;
   container.innerHTML = `
         <div class="relative">
             <button id="profile-menu-button" type="button" class="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-slate-800 focus:ring-blue-500">

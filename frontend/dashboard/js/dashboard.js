@@ -36,12 +36,28 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelPdfBtn: document.getElementById("cancel-pdf-import"),
   };
 
-  // Fetches transactions based on the current state and renders them to the page
   const loadPageContent = async () => {
     try {
-      elements.transactionListDiv.innerHTML =
-        '<p class="text-gray-500 dark:text-gray-400 text-center py-4">Loading...</p>';
+      const cacheKey = `dashboard_transactions_${JSON.stringify(state.filters)}_${state.pagination.currentPage}_${state.pagination.itemsPerPage}`;
+      
+      // 1. Paint cached data immediately (0ms)
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        ui.renderTransactionsList(elements.transactionListDiv, parsed.transactions);
+        ui.updatePaginationUI(elements, { ...state.pagination, currentPage: parsed.currentPage, totalPages: parsed.totalPages });
+      } else if (elements.transactionListDiv.innerHTML === "") {
+        elements.transactionListDiv.innerHTML =
+          '<p class="text-gray-500 dark:text-gray-400 text-center py-4">Loading...</p>';
+      }
+
+      // 2. Fetch fresh data
       const data = await api.fetchTransactions(state);
+      
+      // 3. Store in cache
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      
+      // 4. Update UI silently
       ui.renderTransactionsList(elements.transactionListDiv, data.transactions);
       state.pagination.currentPage = data.currentPage;
       state.pagination.totalPages = data.totalPages;
@@ -86,19 +102,44 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     try {
-      const categories = await api.fetchCategories();
-      const categoryOptions = [
-        { value: "all", label: "All Categories" },
-        ...categories.map((cat) => ({ value: cat, label: cat })),
-      ];
-      elements.filterControls.appendChild(
-        ui.createDropdown(
-          "category",
-          categoryOptions,
-          "All Categories",
-          (value) => onFilterSelect("category", value),
-        ),
-      );
+      const cacheKey = 'dashboard_categories';
+      const cached = localStorage.getItem(cacheKey);
+      let categories = [];
+      
+      if (cached) {
+        categories = JSON.parse(cached);
+        const categoryOptions = [
+          { value: "all", label: "All Categories" },
+          ...categories.map((cat) => ({ value: cat, label: cat })),
+        ];
+        elements.filterControls.appendChild(
+          ui.createDropdown(
+            "category",
+            categoryOptions,
+            "All Categories",
+            (value) => onFilterSelect("category", value),
+          ),
+        );
+      }
+
+      categories = await api.fetchCategories();
+      localStorage.setItem(cacheKey, JSON.stringify(categories));
+      
+      // Only append if we didn't use cache, otherwise the dropdown is already rendered
+      if (!cached) {
+        const categoryOptions = [
+          { value: "all", label: "All Categories" },
+          ...categories.map((cat) => ({ value: cat, label: cat })),
+        ];
+        elements.filterControls.appendChild(
+          ui.createDropdown(
+            "category",
+            categoryOptions,
+            "All Categories",
+            (value) => onFilterSelect("category", value),
+          ),
+        );
+      }
     } catch (error) {
       console.error("Could not load categories:", error);
     }
@@ -128,17 +169,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const transactionRow = document.createElement("div");
       transactionRow.className =
         "grid grid-cols-12 gap-4 items-center p-2 rounded-md odd:bg-slate-50 dark:odd:bg-slate-700/50";
+
+      // Build the row structure with static HTML only — no user data here
       transactionRow.innerHTML = `
-                <div class="col-span-2"><input type="date" value="${t.date}" data-field="date" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5"></div>
-                <div class="col-span-5"><input type="text" value="${t.description}" data-field="description" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Description"></div>
-                <div class="col-span-2"><input type="text" value="${t.category}" data-field="category" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Category"></div>
-                <div class="col-span-2"><input type="number" value="${t.amount.toFixed(2)}" data-field="amount" step="0.01" class="pdf-input w-full text-right rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Amount"></div>
+                <div class="col-span-2"><input type="date" data-field="date" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5"></div>
+                <div class="col-span-5"><input type="text" data-field="description" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Description"></div>
+                <div class="col-span-2"><input type="text" data-field="category" class="pdf-input w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Category"></div>
+                <div class="col-span-2"><input type="number" data-field="amount" step="0.01" class="pdf-input w-full text-right rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm text-sm p-1.5" placeholder="Amount"></div>
                 <div class="col-span-1 flex justify-center"><button type="button" class="remove-pdf-item-btn p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/50 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div>
             `;
+
+      // Set user-supplied values via DOM .value property — NOT innerHTML interpolation.
+      // This is the correct pattern: DOM APIs treat the value as plain text,
+      // making attribute injection (e.g., " onmouseover=alert(1)) structurally impossible.
+      transactionRow.querySelector('[data-field="date"]').value = t.date || "";
+      transactionRow.querySelector('[data-field="description"]').value = t.description || "";
+      transactionRow.querySelector('[data-field="category"]').value = t.category || "";
+      transactionRow.querySelector('[data-field="amount"]').value =
+        typeof t.amount === "number" ? t.amount.toFixed(2) : "";
+
       const typeInput = document.createElement("input");
       typeInput.type = "hidden";
       typeInput.dataset.field = "type";
-      typeInput.value = t.type;
+      typeInput.value = t.type; // Safe — this is set via .value, not innerHTML
       transactionRow.appendChild(typeInput);
       elements.pdfListDiv.appendChild(transactionRow);
     });

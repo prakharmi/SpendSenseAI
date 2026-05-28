@@ -1,4 +1,8 @@
+# Environment variables — never commit secrets
 .env
+.env.local
+.env.production
+.env.*.local
 
 # Dependencies
 node_modules/
@@ -6,3 +10,11 @@ node_modules/
 
 # Generated files
 /frontend/output.css
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.log

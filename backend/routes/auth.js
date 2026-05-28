@@ -10,16 +10,30 @@ router.get(
   }),
 );
 
-// URL user will be redirected to after sign in
+// Callback URL after Google sign-in
+// Session fixation fix: regenerate the session ID AFTER successful authentication.
+// Without this, an attacker can plant a known session cookie before the user logs in,
+// then use that same cookie to act as the authenticated user post-login.
+// regenerate() replaces the session ID while preserving session data.
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    successRedirect: "/dashboard",
-    failureRedirect: "/",
-  }),
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res, next) => {
+    // Regenerate session ID to prevent session fixation
+    const user = req.user;
+    req.session.regenerate((err) => {
+      if (err) return next(err);
+
+      // Re-attach the user to the new session (Passport needs this)
+      req.login(user, (loginErr) => {
+        if (loginErr) return next(loginErr);
+        res.redirect("/dashboard");
+      });
+    });
+  },
 );
 
-// Route to check if the user is logged in
+// Route to check if the user is logged in (used by frontend to get user info)
 router.get("/me", (req, res) => {
   if (req.user) {
     res.status(200).json(req.user);
@@ -28,13 +42,19 @@ router.get("/me", (req, res) => {
   }
 });
 
-// Route to log the user out
+// Route to log the user out and destroy the session completely
 router.get("/logout", (req, res, next) => {
   req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.redirect("/");
+    if (err) return next(err);
+
+    // Destroy the session on the server AND clear the cookie on the client
+    req.session.destroy((destroyErr) => {
+      if (destroyErr) {
+        console.error("Session destroy error:", destroyErr);
+      }
+      res.clearCookie("connect.sid"); // Default express-session cookie name
+      res.redirect("/");
+    });
   });
 });
 

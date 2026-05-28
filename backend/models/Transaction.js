@@ -14,32 +14,50 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       enum: ["income", "expense"],
     },
-    // The category of the transaction(example- Food, Salary etc.)
+    // The category of the transaction (example- Food, Salary etc.)
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
-    // The amount of money
+    // The amount of money — must be a positive number, enforced in validation middleware
     amount: {
       type: Number,
       required: true,
+      min: [0.01, "Amount must be greater than 0"],
     },
     // The date of the transaction
     date: {
       type: Date,
       required: true,
     },
-    // description
+    // A short description of the transaction
     description: {
       type: String,
       trim: true,
+      maxlength: [200, "Description must be 200 characters or fewer"],
     },
   },
   {
     timestamps: true,
   },
 );
+
+// ---------------------------------------------------------------------------
+// Indexes
+//
+// Without these, every query does a full collection scan (O(N) per user).
+// These compound indexes allow MongoDB to jump directly to the right documents.
+//
+// { user, date } — covers the default transaction list (sorted by date desc)
+// { user, type } — covers analytics summary aggregation (group by type)
+// { user, category } — covers category-trend and expenses-by-category
+//
+// All three start with `user` because every query always filters by user first.
+// ---------------------------------------------------------------------------
+transactionSchema.index({ user: 1, date: -1 });
+transactionSchema.index({ user: 1, type: 1 });
+transactionSchema.index({ user: 1, category: 1 });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);
 

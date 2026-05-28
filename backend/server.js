@@ -9,6 +9,8 @@ const cors = require("cors");
 const path = require("path");
 const rateLimit = require("express-rate-limit");
 const MongoStore = require("connect-mongo");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
 
 // Load environment variables
 dotenv.config();
@@ -17,36 +19,142 @@ require("./config/passport-setup");
 
 const authRoutes = require("./routes/auth");
 const transactionRoutes = require("./routes/transactions");
+const { isLoggedIn } = require("./middleware/authMiddleware");
 
 const app = express();
+// Required for accurate IP detection behind Render's reverse proxy
 app.set("trust proxy", 1);
 
+// ---------------------------------------------------------------------------
+// Security: HTTP headers via helmet
+// Content-Security-Policy is configured to allow Chart.js CDN and Google Fonts
+// ---------------------------------------------------------------------------
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://cdn.jsdelivr.net", // Chart.js CDN
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Tailwind injects inline styles
+          "https://fonts.googleapis.com",
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://lh3.googleusercontent.com", // Google profile pictures
+          "https://ui-avatars.com",             // Fallback avatars
+        ],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+      },
+    },
+    // Prevent the browser from sniffing MIME types
+    noSniff: true,
+    // Prevent clickjacking by denying iframe embedding
+    frameguard: { action: "deny" },
+    // Enable HSTS only in production (HTTPS)
+    hsts: process.env.NODE_ENV === "production"
+      ? { maxAge: 31536000, includeSubDomains: true }
+      : false,
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// CORS: Only allow the specific deployed origin (or localhost for dev)
+// Never use `origin: true` — that mirrors any origin including attackers' sites
+// ---------------------------------------------------------------------------
+const allowedOrigins = process.env.ALLOWED_ORIGIN
+  ? [process.env.ALLOWED_ORIGIN]
+  : ["http://localhost:8080", "http://127.0.0.1:8080"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, curl, Postman in dev)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: Origin ${origin} not allowed`));
+    },
+    credentials: true,
+  }),
+);
+
+app.use(express.json({ limit: "10kb" })); // Prevent JSON body bomb attacks
+
+// ---------------------------------------------------------------------------
+// NoSQL Injection Prevention
+// Strips keys containing '$' or '.' from req.body, req.query, req.params
+// Prevents attacks like: { "email": { "$gt": "" } } which bypass auth in MongoDB
+// Must run AFTER express.json() so the body has been parsed
+// ---------------------------------------------------------------------------
+app.use(mongoSanitize({
+  replaceWith: "_", // Replace operators with underscore instead of silently deleting
+  onSanitizeError: (req, res) => {
+    res.status(400).json({ message: "Invalid characters detected in request data." });
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Rate Limiters
+// ---------------------------------------------------------------------------
+
+// General API limiter: 100 req / 15 min per IP
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: "Too many requests from this IP, please try again after 15 minutes",
+  message: { message: "Too many requests from this IP, please try again after 15 minutes." },
 });
 
-app.use(express.json());
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
-
-app.get('/pleasedontsleep', (req, res) => {
-  res.status(200).send('OK');
+// Auth limiter: 20 req / 15 min per IP — prevents OAuth endpoint hammering
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many auth attempts, please try again later." },
 });
 
+// AI limiter: 10 req / 15 min per IP — Gemini calls are expensive
+// Applied specifically to receipt and PDF import endpoints
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "AI processing limit reached. Please try again in 15 minutes." },
+});
+
+// ---------------------------------------------------------------------------
+// Session — secure configuration
+// ---------------------------------------------------------------------------
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    // Persist sessions in MongoDB so they survive server restarts
     store: MongoStore.create({ mongoUrl: process.env.DATABASE_URL }),
+    cookie: {
+      // secure: true ensures cookie is ONLY sent over HTTPS (critical for Render)
+      // In local dev (HTTP), set NODE_ENV=development to keep it working
+      secure: process.env.NODE_ENV === "production",
+      // lax: allows cookie to be sent on top-level navigations (OAuth redirect)
+      sameSite: "lax",
+      // 30 days — user stays logged in without re-authenticating
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      // httpOnly: JS cannot read this cookie — prevents XSS cookie theft
+      httpOnly: true,
+    },
   }),
 );
 
@@ -54,17 +162,28 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API Routes
+// ---------------------------------------------------------------------------
+// Keep-alive ping endpoint (for UptimeRobot)
+// ---------------------------------------------------------------------------
+app.get("/pleasedontsleep", (req, res) => {
+  res.status(200).send("OK");
+});
+
+// ---------------------------------------------------------------------------
+// API Routes (with appropriate rate limiters)
+// ---------------------------------------------------------------------------
+app.use("/auth", authLimiter, authRoutes);
+app.use("/api/transactions/upload-receipt", aiLimiter);
+app.use("/api/transactions/import-pdf", aiLimiter);
 app.use("/api", apiLimiter);
-app.use("/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-app.get('/pleasedontsleep', (req, res) => {
-  res.status(200).send('OK');
-});
-
+// ---------------------------------------------------------------------------
 // Frontend Page Routes
+// Protected pages (/dashboard, /analytics) now require server-side auth
+// This prevents unauthenticated users from even receiving the HTML
+// ---------------------------------------------------------------------------
 app.get("/", (req, res) => {
   if (req.isAuthenticated()) {
     res.redirect("/dashboard");
@@ -73,20 +192,77 @@ app.get("/", (req, res) => {
   }
 });
 
-app.get("/dashboard", (req, res) => {
+// Auth-guarded page routes — isLoggedIn redirects to "/" if not authenticated
+app.get("/dashboard", isLoggedIn, (req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "frontend", "dashboard", "dashboard.html"),
   );
 });
 
-app.get("/analytics", (req, res) => {
+app.get("/analytics", isLoggedIn, (req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "frontend", "analytics", "analytics.html"),
   );
 });
 
-app.use(express.static(path.join(__dirname, "..", "frontend")));
+// Static file serving with per-type cache headers
+// HTML: no-store — auth-guarded pages must never be cached by browsers or proxies.
+//        If cached, a logged-out user visiting /dashboard could see another user's page.
+// CSS/JS: 1-hour max-age + stale-while-revalidate — safe because we don't content-hash
+//          filenames (no build step). Browser revalidates hourly using ETag (304 if unchanged).
+// Images/fonts: 7 days — rarely change.
+app.use(
+  express.static(path.join(__dirname, "..", "frontend"), {
+    etag: true,        // Send ETag for efficient 304 Not Modified responses
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        // Never cache HTML — ensures users always get fresh auth-guarded page checks
+        res.setHeader("Cache-Control", "no-store");
+      } else if (filePath.endsWith(".css") || filePath.endsWith(".js")) {
+        // Cache for 1 hour; serve stale for up to 24h while revalidating in background
+        res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+      } else if (/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?)$/.test(filePath)) {
+        // Images and fonts change rarely — cache for 7 days
+        res.setHeader("Cache-Control", "public, max-age=604800");
+      }
+    },
+  }),
+);
 
+// ---------------------------------------------------------------------------
+// 404 Handler — catches any unmatched routes
+// ---------------------------------------------------------------------------
+app.use((req, res) => {
+  // Return JSON for API requests, redirect to home for page requests
+  if (req.path.startsWith("/api") || req.path.startsWith("/auth")) {
+    return res.status(404).json({ message: "Resource not found." });
+  }
+  res.redirect("/");
+});
+
+// ---------------------------------------------------------------------------
+// Global Error Handler — catches any unhandled errors from route handlers
+// Must have 4 parameters to be recognized as an error handler by Express
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  // Log the full error server-side for debugging
+  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+
+  // Don't leak internal error details to the client in production
+  const statusCode = err.status || err.statusCode || 500;
+  const message =
+    process.env.NODE_ENV === "production"
+      ? "An internal server error occurred."
+      : err.message;
+
+  res.status(statusCode).json({ message });
+});
+
+// ---------------------------------------------------------------------------
+// Database Connection
+// ---------------------------------------------------------------------------
 const DATABASE_URL = process.env.DATABASE_URL;
 
 mongoose
@@ -99,7 +275,32 @@ mongoose
 
 const PORT = process.env.PORT || 8080;
 
-// Start the server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// ---------------------------------------------------------------------------
+// Graceful Shutdown
+// Render (and other PaaS providers) send SIGTERM before stopping a container.
+// This ensures in-flight requests complete and the DB connection closes cleanly
+// instead of being abruptly killed — prevents data corruption and lost writes.
+// ---------------------------------------------------------------------------
+const shutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log("HTTP server closed.");
+    mongoose.connection.close(false).then(() => {
+      console.log("MongoDB connection closed.");
+      process.exit(0);
+    });
+  });
+
+  // Force exit after 10s if graceful shutdown hangs
+  setTimeout(() => {
+    console.error("Graceful shutdown timed out, forcing exit.");
+    process.exit(1);
+  }, 10000);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
