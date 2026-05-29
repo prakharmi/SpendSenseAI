@@ -160,11 +160,15 @@ const validateTransactionItem = (raw, index) => {
 // Gemini AI: extract structured data from a receipt image
 // ---------------------------------------------------------------------------
 async function extractTextFromImage(imageBuffer, mimeType) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not set in the environment variables.");
-  }
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  // responseMimeType enforces JSON at the API transport layer.
+  // This is a second independent gate before our own validateReceiptData schema check.
+  // Even if a malicious image contains prompt injection text, Gemini is constrained
+  // to return only valid JSON — it cannot leak its reasoning or our system prompt.
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
+  });
 
   const result = await model.generateContent([
     // Prompt is entirely server-controlled — no user text injected here.
@@ -182,6 +186,7 @@ async function extractTextFromImage(imageBuffer, mimeType) {
   ]);
 
   const text = result.response.text();
+  // JSON mode means no markdown fences, but defensively strip them anyway
   const jsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
   let parsed;
@@ -261,13 +266,14 @@ router.post("/import-pdf", isLoggedIn, async (req, res) => {
   if (!req.file || !req.file.buffer) {
     return res.status(400).json({ message: "No file was uploaded." });
   }
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ message: "Server is missing the Gemini API key." });
-  }
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // responseMimeType enforces JSON at the API transport layer (H1 fix).
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
 
     const prompt =
       "You are a bank statement parser. Extract ALL transaction rows from this PDF. " +
@@ -460,6 +466,14 @@ router.post("/", isLoggedIn, transactionCreateRules, validate, async (req, res) 
 
     let category = await Category.findOne({ name: normalizedCatName, user: req.user.id });
     if (!category) {
+      // M3: Per-user category limit — prevents DoS via unlimited category creation.
+      // 50 is generous for personal finance (Food, Transport, Bills, etc.)
+      const categoryCount = await Category.countDocuments({ user: req.user.id });
+      if (categoryCount >= 50) {
+        return res.status(400).json({
+          message: "Category limit reached (50 max). Please reuse an existing category.",
+        });
+      }
       category = new Category({ name: normalizedCatName, user: req.user.id });
       await category.save();
     }

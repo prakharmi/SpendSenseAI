@@ -25,16 +25,58 @@ document.addEventListener("DOMContentLoaded", () => {
     pageInfo: document.getElementById("page-info"),
     prevPageBtn: document.getElementById("prev-page-btn"),
     nextPageBtn: document.getElementById("next-page-btn"),
-    receiptUploadInput: document.getElementById("receipt-upload"),
+    // Note: receiptUploadInput and pdfUploadInput are NOT here
+    // because they are rendered dynamically by setupPwaNetworkListeners
     receiptModal: document.getElementById("receipt-confirmation-modal"),
     receiptForm: document.getElementById("receipt-confirmation-form"),
     cancelReceiptBtn: document.getElementById("cancel-receipt-import"),
-    pdfUploadInput: document.getElementById("pdf-upload"),
     pdfModal: document.getElementById("pdf-confirmation-modal"),
     pdfForm: document.getElementById("pdf-confirmation-form"),
     pdfListDiv: document.getElementById("pdf-transactions-list"),
     cancelPdfBtn: document.getElementById("cancel-pdf-import"),
+    aiUploadSection: document.getElementById("ai-upload-section"),
+    offlineDot: document.getElementById("offline-dot"),
   };
+
+  // Clears all cached transaction pages from localStorage.
+  // Must be called after any write (add/delete) so the next load fetches fresh data.
+  const clearTransactionCache = () => {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('dashboard_transactions_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  };
+
+  // M1 Fix: Promise-based custom delete confirmation modal.
+  // Returns a Promise that resolves true (confirm) or false (cancel).
+  // Keeps the async/await delete flow clean without window.confirm() blocking the thread.
+  const confirmDelete = () => new Promise((resolve) => {
+    const modal = document.getElementById("delete-confirm-modal");
+    const okBtn = document.getElementById("delete-confirm-ok");
+    const cancelBtn = document.getElementById("delete-confirm-cancel");
+    const backdrop = document.getElementById("delete-confirm-backdrop");
+    if (!modal || !okBtn || !cancelBtn) { resolve(false); return; }
+
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      backdrop.removeEventListener("click", onCancel);
+    };
+    const onOk = () => { cleanup(); resolve(true); };
+    const onCancel = () => { cleanup(); resolve(false); };
+
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    backdrop.addEventListener("click", onCancel);
+    modal.classList.remove("hidden");
+    // Focus the cancel button by default (safer UX — requires deliberate click to delete)
+    cancelBtn.focus();
+  });
 
   const loadPageContent = async () => {
     try {
@@ -302,6 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.transactionForm.reset();
         if (elements.dateInput) elements.dateInput.valueAsDate = new Date();
         ui.showToast("Transaction added successfully!", "success");
+        clearTransactionCache(); // Invalidate stale pages before re-fetching
         state.pagination.currentPage = 1;
         await loadPageContent();
       } catch (error) {
@@ -311,9 +354,14 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Sets up listeners for the receipt and PDF file upload buttons.
+  // Called once on init AND again every time we go back online (because the
+  // DOM is rebuilt by renderOnlineUploadUI and needs fresh event listeners).
   const setupFileUploadListeners = () => {
-    if (elements.receiptUploadInput) {
-      elements.receiptUploadInput.addEventListener("change", async (event) => {
+    const receiptInput = document.getElementById("receipt-upload");
+    const pdfInput = document.getElementById("pdf-upload");
+
+    if (receiptInput) {
+      receiptInput.addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
         const formData = new FormData();
@@ -339,8 +387,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
-    if (elements.pdfUploadInput) {
-      elements.pdfUploadInput.addEventListener("change", async (event) => {
+
+    if (pdfInput) {
+      pdfInput.addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
         const formData = new FormData();
@@ -430,6 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           await api.addMultipleTransactions(transactionsToSave);
           hidePdfConfirmationModal();
+          clearTransactionCache(); // Invalidate stale pages before re-fetching
           await loadPageContent();
           ui.showToast(
             `${transactionsToSave.length} transactions added!`,
@@ -477,10 +527,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const deleteButton = e.target.closest(".delete-btn");
         if (deleteButton) {
           const transactionId = deleteButton.dataset.id;
-          if (confirm("Are you sure you want to delete this transaction?")) {
+          // M1 Fix: use custom modal instead of blocking window.confirm()
+          const confirmed = await confirmDelete();
+          if (confirmed) {
             try {
               await api.deleteTransaction(transactionId);
               ui.showToast("Transaction deleted!", "success");
+              clearTransactionCache(); // Invalidate stale pages before re-fetching
               await loadPageContent();
             } catch (error) {
               ui.showToast(error.message, "error");
@@ -489,6 +542,110 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
+  };
+
+  // ---------------------------------------------------------------------------
+  // PWA Offline / Online Network Listeners
+  //
+  // UX philosophy: Don't grey out buttons when offline — replace them entirely.
+  // A clear state change is more honest and less confusing than disabled UI.
+  // • Online  → render the two upload cards + bind file events
+  // • Offline → render a clean banner explaining why AI features are unavailable
+  //              + show a pulsing amber dot in the header
+  // ---------------------------------------------------------------------------
+  const renderOnlineUploadUI = () => {
+    if (!elements.aiUploadSection) return;
+    elements.aiUploadSection.innerHTML = `
+      <div class="flex flex-col sm:flex-row gap-4">
+        <label
+          for="receipt-upload"
+          class="flex-1 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700
+                 text-gray-500 dark:text-gray-400 font-semibold py-3 px-4 rounded-lg cursor-pointer
+                 flex items-center justify-center gap-2 hover:border-blue-400 dark:hover:border-blue-500
+                 transition-colors group"
+        >
+          <svg class="h-5 w-5 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="group-hover:text-blue-500 transition-colors">Scan Receipt with AI</span>
+        </label>
+        <input type="file" id="receipt-upload" class="hidden" accept="image/*" />
+
+        <label
+          for="pdf-upload"
+          class="flex-1 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700
+                 text-gray-500 dark:text-gray-400 font-semibold py-3 px-4 rounded-lg cursor-pointer
+                 flex items-center justify-center gap-2 hover:border-emerald-400 dark:hover:border-emerald-500
+                 transition-colors group"
+        >
+          <svg class="h-5 w-5 group-hover:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span class="group-hover:text-emerald-500 transition-colors">Import Bank Statement PDF</span>
+        </label>
+        <input type="file" id="pdf-upload" class="hidden" accept=".pdf" />
+      </div>
+    `;
+    // Bind events to the freshly created DOM elements
+    setupFileUploadListeners();
+  };
+
+  const renderOfflineUploadUI = () => {
+    if (!elements.aiUploadSection) return;
+    elements.aiUploadSection.innerHTML = `
+      <div class="animate-slide-down flex items-center gap-4 bg-amber-50 dark:bg-amber-900/20
+                  border border-amber-200 dark:border-amber-700/50 rounded-lg px-5 py-4">
+        <!-- WiFi-off icon -->
+        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/40
+                    flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M18.364 5.636a9 9 0 010 12.728M15.536 8.464a5 5 0 010 7.072
+                 M12 11a1 1 0 100 2 1 1 0 000-2z"
+            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-amber-800 dark:text-amber-300 text-sm">AI features unavailable offline</p>
+          <p class="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+            Receipt scanning and PDF import need an internet connection.
+            You can still add transactions manually above.
+          </p>
+        </div>
+      </div>
+    `;
+  };
+
+  // Setup offline/online network listener for PWA
+  const setupPwaNetworkListeners = () => {
+    const applyNetworkState = (isOnline) => {
+      // Header dot
+      if (elements.offlineDot) {
+        elements.offlineDot.classList.toggle("hidden", isOnline);
+        elements.offlineDot.classList.toggle("flex", !isOnline);
+      }
+      // Swap upload section
+      if (isOnline) {
+        renderOnlineUploadUI();
+      } else {
+        renderOfflineUploadUI();
+      }
+    };
+
+    window.addEventListener("online", () => {
+      applyNetworkState(true);
+      ui.showToast("Back online!", "success");
+    });
+    window.addEventListener("offline", () => {
+      applyNetworkState(false);
+    });
+
+    // Apply immediately on page load
+    applyNetworkState(navigator.onLine);
   };
 
   // The main initialization function for the page.
@@ -501,9 +658,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // Call all setup functions
       setupHeaderListeners();
       setupTransactionFormListener();
-      setupFileUploadListeners();
+      // Note: setupFileUploadListeners() is called by renderOnlineUploadUI()
+      // inside setupPwaNetworkListeners() — don't call it here to avoid double-binding
       setupModalListeners();
       setupListAndPaginationListeners();
+      setupPwaNetworkListeners();
 
       await populateFilters();
       await loadPageContent();

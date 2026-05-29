@@ -15,6 +15,29 @@ const mongoSanitize = require("express-mongo-sanitize");
 // Load environment variables
 dotenv.config();
 
+// ---------------------------------------------------------------------------
+// Startup Guard — fail fast if critical environment variables are missing.
+// This prevents silent misconfigurations (e.g. undefined SESSION_SECRET
+// which would let express-session accept any forged cookie).
+// ---------------------------------------------------------------------------
+const REQUIRED_ENV_VARS = [
+  "DATABASE_URL",
+  "SESSION_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "CALLBACK_URL",
+  "GEMINI_API_KEY",
+];
+const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`[FATAL] Missing required environment variables: ${missingVars.join(", ")}`);
+  process.exit(1);
+}
+if (process.env.SESSION_SECRET.length < 32) {
+  console.error("[FATAL] SESSION_SECRET must be at least 32 characters long.");
+  process.exit(1);
+}
+
 require("./config/passport-setup");
 
 const authRoutes = require("./routes/auth");
@@ -49,10 +72,15 @@ app.use(
           "data:",
           "https://lh3.googleusercontent.com", // Google profile pictures
           "https://ui-avatars.com",             // Fallback avatars
+          "https://www.svgrepo.com",            // Google logo on login page
         ],
         connectSrc: ["'self'"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
+        // Prevent plugin embedding (Flash, etc.)
+        mediaSrc: ["'none'"],
+        // Upgrade insecure requests in production
+        ...(process.env.NODE_ENV === "production" ? { upgradeInsecureRequests: [] } : {}),
       },
     },
     // Prevent the browser from sniffing MIME types
@@ -61,10 +89,29 @@ app.use(
     frameguard: { action: "deny" },
     // Enable HSTS only in production (HTTPS)
     hsts: process.env.NODE_ENV === "production"
-      ? { maxAge: 31536000, includeSubDomains: true }
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
       : false,
+    // Control how much referrer info is included with requests
+    // strict-origin-when-cross-origin: full URL for same-origin, only origin for cross-origin
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    // Cross-Origin policies to prevent Spectre-style attacks
+    crossOriginEmbedderPolicy: false, // Keep false — breaks Google Fonts
+    crossOriginOpenerPolicy: { policy: "same-origin" },
+    crossOriginResourcePolicy: { policy: "same-origin" },
   }),
 );
+
+// ---------------------------------------------------------------------------
+// Permissions-Policy: Deny browser APIs this app never uses.
+// Prevents a successful XSS from accessing camera, microphone, geolocation.
+// ---------------------------------------------------------------------------
+app.use((req, res, next) => {
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  );
+  next();
+});
 
 // ---------------------------------------------------------------------------
 // CORS: Only allow the specific deployed origin (or localhost for dev)
@@ -77,8 +124,16 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (same-origin, curl, Postman in dev)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin ONLY in development (same-origin server renders, Postman).
+      // In production every legitimate browser request comes from ALLOWED_ORIGIN.
+      if (!origin) {
+        if (process.env.NODE_ENV === "production") {
+          // In production, no-origin requests are allowed only from same server (no CORS header needed)
+          return callback(null, false);
+        }
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS: Origin ${origin} not allowed`));
@@ -231,6 +286,16 @@ app.use(
       if (filePath.endsWith(".html")) {
         // Never cache HTML — ensures users always get fresh auth-guarded page checks
         res.setHeader("Cache-Control", "no-store");
+      } else if (filePath.endsWith("sw.js")) {
+        // Service worker MUST NOT be cached — browser needs to check for updates on every load.
+        // If cached, a bug in the SW would be permanently stuck with no way to update.
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        // Allow the SW to control the entire site scope (not just /sw.js directory)
+        res.setHeader("Service-Worker-Allowed", "/");
+      } else if (filePath.endsWith("manifest.json")) {
+        // Manifest can be cached briefly — 1 hour is fine
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        res.setHeader("Content-Type", "application/manifest+json");
       } else if (filePath.endsWith(".css") || filePath.endsWith(".js")) {
         // Cache for 1 hour; serve stale for up to 24h while revalidating in background
         res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");

@@ -169,7 +169,7 @@ export const showToast = (message, type = "success") => {
   if (!toast || !toastMessage || !toastIcon) return;
 
   // Reset styles from previous toasts
-  toast.classList.remove("bg-green-500", "bg-red-500");
+  toast.classList.remove("bg-green-500", "bg-red-500", "bg-amber-500", "bg-blue-500");
 
   // Define styles and icons for each type
   const styles = {
@@ -180,6 +180,15 @@ export const showToast = (message, type = "success") => {
     error: {
       bg: "bg-red-500",
       icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+    },
+    // M2 Fix: warning now correctly shows amber instead of falling back to green.
+    warning: {
+      bg: "bg-amber-500",
+      icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>`,
+    },
+    info: {
+      bg: "bg-blue-500",
+      icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
     },
   };
 

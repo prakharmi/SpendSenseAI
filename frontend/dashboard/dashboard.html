@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | SpendSenseAI</title>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SpendSense" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!-- Styles -->
     <link href="/output.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,6 +31,12 @@
         -moz-appearance: textfield; /* For Firefox */
         appearance: textfield;
       }
+      /* Offline banner slide-in animation */
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .animate-slide-down { animation: slideDown 0.25s ease-out; }
     </style>
   </head>
   <body
@@ -39,6 +54,11 @@
             ></a
           >
           <div class="flex items-center space-x-2 sm:space-x-4">
+            <!-- Offline indicator dot — shown by JS when navigator.onLine is false -->
+            <div id="offline-dot" class="hidden items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span class="hidden sm:inline">Offline</span>
+            </div>
             <div id="profile-button-container" class="relative"></div>
             <div class="relative">
               <button
@@ -202,59 +222,9 @@
           </form>
         </div>
 
-        <div class="my-8 flex flex-col sm:flex-row gap-4">
-          <label
-            for="receipt-upload"
-            class="flex-1 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-semibold py-3 px-4 rounded-lg cursor-pointer flex items-center justify-center gap-2 hover:border-gray-400 dark:hover:border-slate-500 transition"
-          >
-            <svg
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <span>Upload Receipt</span>
-          </label>
-          <input
-            type="file"
-            id="receipt-upload"
-            class="hidden"
-            accept="image/*"
-          />
-
-          <label
-            for="pdf-upload"
-            class="flex-1 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-semibold py-3 px-4 rounded-lg cursor-pointer flex items-center justify-center gap-2 hover:border-gray-400 dark:hover:border-slate-500 transition"
-          >
-            <svg
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span>Import PDF</span>
-          </label>
-          <input type="file" id="pdf-upload" class="hidden" accept=".pdf" />
+        <!-- AI Upload Section — content controlled by JS based on online/offline state -->
+        <div id="ai-upload-section" class="my-8">
+          <!-- Populated by setupPwaNetworkListeners() in dashboard.js -->
         </div>
 
         <div class="mt-10">
@@ -314,7 +284,7 @@
         <!--Alert for CRUD operation-->
         <div
           id="toast-notification"
-          class="hidden fixed top-5 right-5 flex items-center gap-4 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 ease-in-out z-[100]"
+          class="hidden fixed top-5 right-5 flex items-center gap-4 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 ease-in-out z-[9999]"
         >
           <span id="toast-icon" class="text-white"></span>
           <p id="toast-message" class="text-white font-semibold"></p>
@@ -489,6 +459,47 @@
         </div>
       </footer>
     </div>
+    <!-- Delete Confirmation Modal (M1 Fix: replaces window.confirm()) -->
+    <div id="delete-confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+      <!-- Backdrop -->
+      <div id="delete-confirm-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+      <!-- Modal Panel -->
+      <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 max-w-sm w-full border border-gray-200 dark:border-slate-700 animate-fade-in">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="flex-shrink-0 h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white">Delete Transaction</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button id="delete-confirm-cancel" type="button"
+            class="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 dark:focus:ring-slate-500">
+            Cancel
+          </button>
+          <button id="delete-confirm-ok" type="button"
+            class="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('[SW] Registered, scope:', reg.scope))
+            .catch(err => console.warn('[SW] Registration failed:', err));
+        });
+      }
+    </script>
+
     <script type="module" src="/dashboard/js/dashboard.js" defer></script>
   </body>
 </html>

@@ -108,6 +108,18 @@ const transactionFilterRules = [
     .isIn(["all", "income", "expense"])
     .withMessage('Type filter must be "all", "income", or "expense".'),
 
+  // H2 Fix: Validate category query param to prevent any attempt to pass
+  // operator-like strings. mongo-sanitize already strips '$'/'.' keys but
+  // defense-in-depth validates the value too.
+  query("category")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Category filter must be 100 characters or fewer.")
+    // Reject any value containing MongoDB operator chars that sneak past sanitize
+    .not().matches(/[\$\.]/)
+    .withMessage("Category filter contains invalid characters."),
+
   query("dateRange")
     .optional()
     .isIn(["all", "week", "month", "3months"])
