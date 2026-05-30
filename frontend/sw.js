@@ -12,7 +12,7 @@
  *   - API data must be fresh → no SW caching (backend TTL + localStorage SWR handle it)
  */
 
-const CACHE_NAME = "spendsense-shell-v1";
+const CACHE_NAME = "spendsense-shell-v2";
 
 // Static assets that form the "App Shell" — everything needed to render the UI
 // These are cached on install and served instantly on repeat visits
@@ -28,6 +28,7 @@ const APP_SHELL = [
   "/dashboard/js/dashboard.js",
   "/dashboard/js/api.js",
   "/dashboard/js/ui.js",
+  "/dashboard/js/db.js",
   "/analytics/js/index.js",
   "/analytics/js/api.js",
   "/analytics/js/ui.js",

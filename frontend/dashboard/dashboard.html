@@ -57,7 +57,7 @@
             <!-- Offline indicator dot — shown by JS when navigator.onLine is false -->
             <div id="offline-dot" class="hidden items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
               <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span class="hidden sm:inline">Offline</span>
+              <span>Offline</span>
             </div>
             <div id="profile-button-container" class="relative"></div>
             <div class="relative">
@@ -281,15 +281,16 @@
             </div>
           </div>
         </div>
-        <!--Alert for CRUD operation-->
-        <div
-          id="toast-notification"
-          class="hidden fixed top-5 right-5 flex items-center gap-4 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 ease-in-out z-[9999]"
-        >
-          <span id="toast-icon" class="text-white"></span>
-          <p id="toast-message" class="text-white font-semibold"></p>
-        </div>
       </main>
+
+      <!--Alert for CRUD operation-->
+      <div
+        id="toast-notification"
+        class="hidden fixed top-5 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-5 flex items-center gap-4 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 ease-in-out z-[9999] w-max max-w-[90vw]"
+      >
+        <span id="toast-icon" class="text-white"></span>
+        <p id="toast-message" class="text-white font-semibold text-sm sm:text-base"></p>
+      </div>
 
       <!--Hidden confirmation popup for UPLOAD RECEIPT, confirms if the data to be added is correct-->
       <div

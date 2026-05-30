@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     categoryTrendChartContainer: document.getElementById(
       "category-trend-chart-container",
     ),
+    offlineDot: document.getElementById("offline-dot"),
   };
 
   // Helper to render categories and load trend chart
@@ -229,6 +230,24 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.timeFrameFilterContainer.appendChild(dropdown);
   };
 
+  // ---------------------------------------------------------------------------
+  // PWA Offline / Online Network Listeners
+  // ---------------------------------------------------------------------------
+  const setupPwaNetworkListeners = () => {
+    const applyNetworkState = (isOnline) => {
+      if (elements.offlineDot) {
+        elements.offlineDot.classList.toggle("hidden", isOnline);
+        elements.offlineDot.classList.toggle("flex", !isOnline);
+      }
+    };
+
+    window.addEventListener("online", () => applyNetworkState(true));
+    window.addEventListener("offline", () => applyNetworkState(false));
+
+    // Apply immediately on page load
+    applyNetworkState(navigator.onLine);
+  };
+
   // Initializes the entire page.
   const init = async () => {
     try {
@@ -237,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderTimeFilter();
       setupEventListeners();
+      setupPwaNetworkListeners();
 
       // Load all content
       updateDynamicContent(); // For time-sensitive data

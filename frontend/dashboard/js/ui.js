@@ -39,11 +39,16 @@ export const renderTransactionsList = (container, transactions) => {
     const isExpense = t.type === "expense";
     const amountColor = isExpense ? "text-red-500" : "text-green-500";
     const sign = isExpense ? "-" : "+";
-    const categoryName = sanitize(t.category.name);
+    const categoryName = sanitize(t.category?.name || t.category || "Unknown");
+    
+    // Check if this is a pending offline transaction
+    const offlineBadge = t.isOffline 
+      ? `<span class="ml-2 inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/30 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">Pending Sync</span>`
+      : '';
 
     const el = document.createElement("div");
     el.className =
-      "bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm flex items-center justify-between transition-transform transform hover:scale-[1.02]";
+      "bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm flex items-center justify-between transition-transform transform hover:scale-[1.02]" + (t.isOffline ? " opacity-80" : "");
 
     // Safe static HTML — no user data interpolated here
     el.innerHTML = `
@@ -52,7 +57,7 @@ export const renderTransactionsList = (container, transactions) => {
                     <span class="text-xl">${categoryName === "Salary" ? "💰" : isExpense ? "🛍️" : "📈"}</span>
                 </div>
                 <div>
-                    <p class="font-semibold text-gray-800 dark:text-gray-200" data-description></p>
+                    <p class="font-semibold text-gray-800 dark:text-gray-200 flex items-center"><span data-description></span>${offlineBadge}</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400"><span data-category></span> ・ ${date}</p>
                 </div>
             </div>

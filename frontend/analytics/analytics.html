@@ -38,7 +38,12 @@
             >
           </a>
           <div class="flex items-center space-x-2 sm:space-x-4">
-            <div id="profile-button-container"></div>
+            <!-- Offline indicator dot -->
+            <div id="offline-dot" class="hidden items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>Offline</span>
+            </div>
+            <div id="profile-button-container" class="relative"></div>
             <div class="relative">
               <button
                 type="button"

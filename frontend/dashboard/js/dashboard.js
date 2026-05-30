@@ -2,6 +2,7 @@
 // It manages the application state and connects UI events to API calls.
 import * as api from "./api.js";
 import * as ui from "./ui.js";
+import * as db from "./db.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   // Current State Management
@@ -82,32 +83,61 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const cacheKey = `dashboard_transactions_${JSON.stringify(state.filters)}_${state.pagination.currentPage}_${state.pagination.itemsPerPage}`;
       
-      // 1. Paint cached data immediately (0ms)
+      // Fetch offline transactions from IndexedDB
+      const offlineTxs = await db.getOfflineTransactions();
+      
+      // Paint cached data immediately (0ms)
       const cached = localStorage.getItem(cacheKey);
+      let displayTransactions = [];
+      let currentPage = state.pagination.currentPage;
+      let totalPages = 1;
+      
       if (cached) {
         const parsed = JSON.parse(cached);
-        ui.renderTransactionsList(elements.transactionListDiv, parsed.transactions);
-        ui.updatePaginationUI(elements, { ...state.pagination, currentPage: parsed.currentPage, totalPages: parsed.totalPages });
+        displayTransactions = parsed.transactions;
+        currentPage = parsed.currentPage;
+        totalPages = parsed.totalPages;
       } else if (elements.transactionListDiv.innerHTML === "") {
         elements.transactionListDiv.innerHTML =
           '<p class="text-gray-500 dark:text-gray-400 text-center py-4">Loading...</p>';
       }
 
-      // 2. Fetch fresh data
+      // Prepend offline transactions if on page 1
+      let combinedCached = [...displayTransactions];
+      if (currentPage === 1 && offlineTxs.length > 0) {
+        combinedCached = [...offlineTxs.reverse(), ...displayTransactions];
+      }
+      
+      if (cached || offlineTxs.length > 0) {
+        ui.renderTransactionsList(elements.transactionListDiv, combinedCached);
+        if (cached) ui.updatePaginationUI(elements, { ...state.pagination, currentPage, totalPages });
+      }
+
+      // If offline, stop here so we don't throw an API error. The user sees cached + offline txs.
+      if (!navigator.onLine) {
+        return;
+      }
+
+      // Fetch fresh data
       const data = await api.fetchTransactions(state);
       
-      // 3. Store in cache
+      // Store in cache
       localStorage.setItem(cacheKey, JSON.stringify(data));
       
-      // 4. Update UI silently
-      ui.renderTransactionsList(elements.transactionListDiv, data.transactions);
+      // Update UI silently
+      let finalTransactions = data.transactions;
+      if (data.currentPage === 1 && offlineTxs.length > 0) {
+        finalTransactions = [...offlineTxs.reverse(), ...data.transactions];
+      }
+
+      ui.renderTransactionsList(elements.transactionListDiv, finalTransactions);
       state.pagination.currentPage = data.currentPage;
       state.pagination.totalPages = data.totalPages;
       ui.updatePaginationUI(elements, state.pagination);
     } catch (error) {
       console.error("Error loading page content:", error);
       elements.transactionListDiv.innerHTML =
-        '<p class="text-red-500 text-center py-4">Could not load transactions.</p>';
+        '<p class="text-red-500 text-center py-4">Could not load transactions. Please check your connection.</p>';
     }
   };
 
@@ -339,6 +369,28 @@ document.addEventListener("DOMContentLoaded", () => {
         category: formData.get("category"),
         date: formData.get("date"),
       };
+      if (!navigator.onLine) {
+        // Save to IndexedDB for offline sync
+        try {
+          // Generate a temporary ID so it renders correctly in the list (will be replaced when synced)
+          const offlineTx = { ...transactionData, _id: "offline_" + Date.now(), isOffline: true };
+          await db.addOfflineTransaction(offlineTx);
+          
+          elements.transactionForm.reset();
+          if (elements.dateInput) elements.dateInput.valueAsDate = new Date();
+          
+          ui.showToast("Saved offline. Will sync when reconnected.", "info");
+          
+          // DO NOT clear cache here, because we need the cached past transactions to render!
+          // We just reload the page content to inject the new offline tx into the existing cached list.
+          state.pagination.currentPage = 1;
+          await loadPageContent();
+        } catch (error) {
+          ui.showToast("Error saving offline.", "error");
+        }
+        return;
+      }
+
       try {
         await api.addTransaction(transactionData);
         elements.transactionForm.reset();
@@ -636,9 +688,40 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
+    const syncOfflineData = async () => {
+      try {
+        const offlineTxs = await db.getOfflineTransactions();
+        if (offlineTxs.length === 0) return;
+
+        ui.showToast(`Syncing ${offlineTxs.length} offline transactions...`, "info");
+        
+        let successCount = 0;
+        for (const tx of offlineTxs) {
+          try {
+            // Remove the temporary properties used for local tracking
+            const { _id, isOffline, _offlineAddedAt, ...apiTxData } = tx;
+            await api.addTransaction(apiTxData);
+            await db.deleteOfflineTransaction(tx.id); // Remove from IndexedDB on success
+            successCount++;
+          } catch (err) {
+            console.error("Failed to sync transaction:", tx, err);
+          }
+        }
+
+        if (successCount > 0) {
+          ui.showToast(`Successfully synced ${successCount} transactions!`, "success");
+          clearTransactionCache();
+          await loadPageContent();
+        }
+      } catch (error) {
+        console.error("Error during offline sync:", error);
+      }
+    };
+
     window.addEventListener("online", () => {
       applyNetworkState(true);
       ui.showToast("Back online!", "success");
+      syncOfflineData();
     });
     window.addEventListener("offline", () => {
       applyNetworkState(false);
@@ -646,6 +729,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Apply immediately on page load
     applyNetworkState(navigator.onLine);
+    if (navigator.onLine) {
+      syncOfflineData();
+    }
   };
 
   // The main initialization function for the page.
