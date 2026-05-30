@@ -56,10 +56,8 @@ const transactionCreateRules = [
 
   body("category")
     .trim()
-    .notEmpty()
-    .withMessage("Category is required.")
-    .isLength({ max: 100 })
-    .withMessage("Category name must be 100 characters or fewer."),
+    .isIn(["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"])
+    .withMessage("Category must be one of: Food, Transport, Groceries, Utility, Entertainment, Other."),
 ];
 
 /**
@@ -93,10 +91,8 @@ const transactionBulkRules = [
 
   body("transactions.*.category")
     .trim()
-    .notEmpty()
-    .withMessage("Each transaction must have a category.")
-    .isLength({ max: 100 })
-    .withMessage("Category name must be 100 characters or fewer."),
+    .isIn(["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"])
+    .withMessage("Each transaction category must be valid."),
 ];
 
 /**
@@ -114,11 +110,8 @@ const transactionFilterRules = [
   query("category")
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Category filter must be 100 characters or fewer.")
-    // Reject any value containing MongoDB operator chars that sneak past sanitize
-    .not().matches(/[\$\.]/)
-    .withMessage("Category filter contains invalid characters."),
+    .isIn(["all", "Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"])
+    .withMessage("Category filter is invalid."),
 
   query("dateRange")
     .optional()
@@ -159,10 +152,8 @@ const analyticsDateRangeRules = [
 const categoryTrendRules = [
   query("categoryName")
     .trim()
-    .notEmpty()
-    .withMessage("Category name is required.")
-    .isLength({ max: 100 })
-    .withMessage("Category name must be 100 characters or fewer."),
+    .isIn(["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"])
+    .withMessage("Category must be valid."),
 ];
 
 module.exports = {

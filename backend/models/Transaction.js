@@ -14,11 +14,12 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       enum: ["income", "expense"],
     },
-    // The category of the transaction (example- Food, Salary etc.)
+    // The category of the transaction
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+      type: String,
       required: true,
+      enum: ["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"],
+      default: "Food",
     },
     // The amount of money — must be a positive number, enforced in validation middleware
     amount: {

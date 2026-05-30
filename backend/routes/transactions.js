@@ -9,7 +9,6 @@ const {
   transactionIdRules,
 } = require("../middleware/validationMiddleware");
 const Transaction = require("../models/Transaction");
-const Category = require("../models/Category");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -51,8 +50,12 @@ const runUpload = (uploader) => (req, res) =>
 // ---------------------------------------------------------------------------
 // Normalize category names — prevents "food"/"Food"/"FOOD" proliferation
 // ---------------------------------------------------------------------------
-const normalizeCategory = (name) =>
-  (name || "Other").trim().replace(/\s+/g, " ");
+const VALID_CATEGORIES = ["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"];
+const normalizeCategory = (name) => {
+  const normalized = (name || "Other").trim();
+  const match = VALID_CATEGORIES.find(c => c.toLowerCase() === normalized.toLowerCase());
+  return match || "Other";
+};
 
 // ---------------------------------------------------------------------------
 // Gemini output validators
@@ -176,7 +179,7 @@ async function extractTextFromImage(imageBuffer, mimeType) {
     'You are a receipt data extractor. Extract ONLY the total amount, date, and category from the receipt image. ' +
     'Respond with ONLY a JSON object in this exact format, no other text: ' +
     '{ "amount": <number>, "date": "<YYYY-MM-DD>", "category": "<single word category>" }. ' +
-    'Category must be one of: Food, Transport, Shopping, Bills, Entertainment, Health, Education, Other.',
+    'Category must be one of: Food, Transport, Groceries, Utility, Entertainment, Other.',
     {
       inlineData: {
         data: imageBuffer.toString("base64"),
@@ -279,7 +282,7 @@ router.post("/import-pdf", isLoggedIn, async (req, res) => {
       "You are a bank statement parser. Extract ALL transaction rows from this PDF. " +
       "For each transaction, return a JSON object with exactly these keys: " +
       '"description" (string, the item/merchant name), ' +
-      '"category" (string, one of: Food/Transport/Shopping/Bills/Salary/Entertainment/Health/Other), ' +
+      '"category" (string, one of: Food/Transport/Groceries/Utility/Entertainment/Other), ' +
       '"date" (string, format YYYY-MM-DD), ' +
       '"amount" (positive number), ' +
       '"type" (string, exactly "income" for credits or "expense" for debits). ' +
@@ -363,32 +366,13 @@ router.post(
     try {
       const { transactions } = req.body;
 
-      const uniqueCategoryNames = [
-        ...new Set(transactions.map((t) => normalizeCategory(t.category))),
-      ];
-
-      const existingCategories = await Category.find({
-        name: { $in: uniqueCategoryNames },
-        user: req.user.id,
-      });
-
-      const categoryMap = new Map(existingCategories.map((c) => [c.name, c]));
-
-      const missingNames = uniqueCategoryNames.filter((name) => !categoryMap.has(name));
-      if (missingNames.length > 0) {
-        const newCategories = await Category.insertMany(
-          missingNames.map((name) => ({ name, user: req.user.id })),
-        );
-        newCategories.forEach((c) => categoryMap.set(c.name, c));
-      }
-
       const transactionDocs = transactions.map((t) => ({
         user: req.user.id,
         type: t.type,
         description: t.description.trim(),
         amount: t.amount,
         date: t.date,
-        category: categoryMap.get(normalizeCategory(t.category))._id,
+        category: normalizeCategory(t.category),
       }));
 
       const savedTransactions = await Transaction.insertMany(transactionDocs);
@@ -422,12 +406,7 @@ router.get("/", isLoggedIn, transactionFilterRules, validate, async (req, res) =
     if (type && type !== "all") filter.type = type;
 
     if (categoryName && categoryName !== "all") {
-      const category = await Category.findOne({ name: categoryName, user: req.user.id });
-      if (category) {
-        filter.category = category._id;
-      } else {
-        return res.json({ transactions: [], currentPage: 1, totalPages: 0, totalTransactions: 0 });
-      }
+      filter.category = normalizeCategory(categoryName);
     }
 
     if (dateRange && dateRange !== "all") {
@@ -445,7 +424,7 @@ router.get("/", isLoggedIn, transactionFilterRules, validate, async (req, res) =
     // Run count and find in parallel — saves one full round-trip time
     const [totalTransactions, transactions] = await Promise.all([
       Transaction.countDocuments(filter),
-      Transaction.find(filter).sort({ date: -1 }).populate("category").skip(skip).limit(limitNum),
+      Transaction.find(filter).sort({ date: -1 }).skip(skip).limit(limitNum),
     ]);
 
     const totalPages = Math.ceil(totalTransactions / limitNum);
@@ -463,28 +442,14 @@ router.post("/", isLoggedIn, transactionCreateRules, validate, async (req, res) 
   try {
     const { type, description, amount, date, category: categoryName } = req.body;
     const normalizedCatName = normalizeCategory(categoryName);
-
-    let category = await Category.findOne({ name: normalizedCatName, user: req.user.id });
-    if (!category) {
-      // M3: Per-user category limit — prevents DoS via unlimited category creation.
-      // 50 is generous for personal finance (Food, Transport, Bills, etc.)
-      const categoryCount = await Category.countDocuments({ user: req.user.id });
-      if (categoryCount >= 50) {
-        return res.status(400).json({
-          message: "Category limit reached (50 max). Please reuse an existing category.",
-        });
-      }
-      category = new Category({ name: normalizedCatName, user: req.user.id });
-      await category.save();
-    }
-
+    
     const newTransaction = new Transaction({
       user: req.user.id,
       type,
       description: description.trim(),
       amount,
       date,
-      category: category._id,
+      category: normalizedCatName,
     });
     await newTransaction.save();
 
@@ -527,8 +492,7 @@ router.delete("/:id", isLoggedIn, transactionIdRules, validate, async (req, res)
 // ---------------------------------------------------------------------------
 router.get("/categories", isLoggedIn, async (req, res) => {
   try {
-    const categories = await Category.find({ user: req.user.id }).distinct("name");
-    res.status(200).json(categories);
+    res.status(200).json(["Food", "Transport", "Groceries", "Utility", "Entertainment", "Other"]);
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ message: "Server error while fetching categories." });

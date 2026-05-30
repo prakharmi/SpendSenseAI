@@ -7,7 +7,6 @@ const {
   categoryTrendRules,
 } = require("../middleware/validationMiddleware");
 const Transaction = require("../models/Transaction");
-const Category = require("../models/Category");
 const mongoose = require("mongoose");
 const analyticsCache = require("../utils/cache");
 
@@ -110,17 +109,9 @@ router.get(
         },
         { $group: { _id: "$category", totalAmount: { $sum: "$amount" } } },
         {
-          $lookup: {
-            from: "categories",
-            localField: "_id",
-            foreignField: "_id",
-            as: "categoryDetails",
-          },
-        },
-        {
           $project: {
             _id: 0,
-            category: { $arrayElemAt: ["$categoryDetails.name", 0] },
+            category: "$_id",
             totalAmount: 1,
           },
         },
@@ -200,24 +191,12 @@ router.get(
         return res.json(cached);
       }
 
-      const category = await Category.findOne({
-        name: normalizedName,
-        user: req.user.id,
-      });
-
-      // Return empty array — no data is a valid state, not an error
-      if (!category) {
-        analyticsCache.set(cacheKey, [], CACHE_TTL_MS);
-        res.setHeader("X-Cache", "MISS");
-        return res.json([]);
-      }
-
       const trendData = await Transaction.aggregate([
         {
           $match: {
             user: new mongoose.Types.ObjectId(req.user.id),
             type: "expense",
-            category: category._id,
+            category: normalizedName,
           },
         },
         {

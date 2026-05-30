@@ -579,6 +579,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const deleteButton = e.target.closest(".delete-btn");
         if (deleteButton) {
           const transactionId = deleteButton.dataset.id;
+          
+          // Handle offline delete attempts
+          if (!navigator.onLine) {
+            if (transactionId.startsWith('offline_')) {
+              const confirmed = await confirmDelete();
+              if (confirmed) {
+                try {
+                  await db.deleteOfflineTransaction(transactionId);
+                  ui.showToast("Pending transaction deleted.", "success");
+                  await loadPageContent();
+                } catch (error) {
+                  ui.showToast("Error deleting offline transaction.", "error");
+                }
+              }
+            } else {
+              ui.showToast("Cannot delete synced transactions while offline.", "warning");
+            }
+            return;
+          }
+
           // M1 Fix: use custom modal instead of blocking window.confirm()
           const confirmed = await confirmDelete();
           if (confirmed) {

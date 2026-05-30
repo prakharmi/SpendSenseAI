@@ -21,6 +21,14 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- Blocking script to prevent FOUC (Flash of Unstyled Content) for Dark Mode -->
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
   </head>
   <body
     class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size"

@@ -38,6 +38,14 @@
       }
       .animate-slide-down { animation: slideDown 0.25s ease-out; }
     </style>
+    <!-- Blocking script to prevent FOUC (Flash of Unstyled Content) for Dark Mode -->
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
   </head>
   <body
     class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 antialiased bg-grid-light dark:bg-grid-dark bg-grid-size"
@@ -204,12 +212,12 @@
                   required
                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 >
-                  <option>Food</option>
-                  <option>Transport</option>
-                  <option>Bills</option>
-                  <option>Salary</option>
-                  <option>Entertainment</option>
-                  <option>Other</option>
+                  <option value="Food" selected>Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Utility">Utility</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <button
@@ -232,10 +240,11 @@
             Recent Transactions
           </h2>
 
-          <div id="filter-controls" class="mt-4 mb-4">
-            <p class="text-sm text-gray-500 italic">
-              The new filter buttons will be rendered here by JavaScript...
-            </p>
+          <div id="filter-controls" class="mt-4 mb-4 flex flex-wrap gap-2">
+            <!-- Skeleton loader for filters before JS kicks in -->
+            <div class="h-10 w-24 bg-gray-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+            <div class="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+            <div class="h-10 w-28 bg-gray-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
           </div>
 
           <div id="transaction-list"></div>
