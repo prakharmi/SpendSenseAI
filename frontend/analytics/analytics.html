@@ -24,9 +24,11 @@
     <!-- Blocking script to prevent FOUC (Flash of Unstyled Content) for Dark Mode -->
     <script>
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.backgroundColor = '#0f172a';
       } else {
-        document.documentElement.classList.remove('dark')
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.backgroundColor = '#f9fafb';
       }
     </script>
   </head>
@@ -122,29 +124,34 @@
           class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
         ></div>
 
+        <!-- AI Coach Section — content controlled by JS based on online/offline state -->
+        <div id="ai-coach-section" class="mb-8">
+          <!-- Populated by setupPwaNetworkListeners() in index.js -->
+        </div>
+
         <!-- Vertical Stack for All Charts -->
-        <div class="space-y-8">
-          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+        <div class="space-y-8 animate-fade-in-up" style="animation-delay: 100ms;">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700/50">
             <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Expenses by Category
             </h2>
             <div id="category-chart-container" class="h-80"></div>
           </div>
 
-          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700/50">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold text-gray-900 dark:text-white">
                 Spending Trend
               </h2>
               <select
                 id="category-trend-select"
-                class="text-sm rounded-md border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 focus:ring-blue-500 focus:border-blue-500"
+                class="text-sm rounded-lg border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 focus:ring-blue-500 focus:border-blue-500"
               ></select>
             </div>
             <div id="category-trend-chart-container" class="h-80"></div>
           </div>
 
-          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700/50">
             <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Monthly Summary
             </h2>

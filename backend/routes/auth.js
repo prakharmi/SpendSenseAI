@@ -58,4 +58,41 @@ router.get("/logout", (req, res, next) => {
   });
 });
 
+const User = require("../models/User");
+const Transaction = require("../models/Transaction");
+const analyticsCache = require("../utils/cache");
+const { isLoggedIn } = require("../middleware/authMiddleware");
+
+// Route to delete the user account and all associated data
+router.delete("/account", isLoggedIn, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    // 1. Delete all transactions belonging to the user
+    await Transaction.deleteMany({ user: userId });
+    
+    // 2. Delete the user record
+    await User.findByIdAndDelete(userId);
+    
+    // 3. Clear any cached analytics for this user
+    analyticsCache.delByPrefix(String(userId));
+    
+    // 4. Log out and destroy session
+    req.logout(function (err) {
+      if (err) return next(err);
+      
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error("Session destroy error during account deletion:", destroyErr);
+        }
+        res.clearCookie("connect.sid");
+        res.status(200).json({ message: "Account and all data successfully deleted." });
+      });
+    });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    res.status(500).json({ message: "An error occurred while deleting the account." });
+  }
+});
+
 module.exports = router;

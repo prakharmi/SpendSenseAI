@@ -212,6 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.categoryTrendSelect.addEventListener("change", (e) =>
       handleCategoryTrendChange(e.target.value),
     );
+
   };
 
   const renderTimeFilter = () => {
@@ -233,11 +234,117 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------------------------------------------------------
   // PWA Offline / Online Network Listeners
   // ---------------------------------------------------------------------------
+  const renderOnlineAiCoach = () => {
+    const section = document.getElementById("ai-coach-section");
+    if (!section) return;
+    section.innerHTML = `
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 p-6 rounded-xl shadow-sm border border-blue-100 dark:border-slate-700 relative overflow-hidden animate-fade-in-up">
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+              AI Financial Coach
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Get personalized, actionable advice based on your recent spending habits.</p>
+          </div>
+          <button id="btn-analyze-spending" class="shrink-0 inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+            Analyze My Spending
+          </button>
+        </div>
+        <div id="ai-insights-container" class="mt-4 hidden">
+          <div id="ai-insights-loading" class="hidden flex items-center gap-3 text-blue-600 dark:text-blue-400">
+            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span class="text-sm font-medium">Analyzing your spending patterns...</span>
+          </div>
+          <div id="ai-insights-error" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-800"></div>
+          <ul id="ai-insights-list" class="hidden space-y-3 mt-4 text-gray-700 dark:text-gray-300"></ul>
+        </div>
+      </div>
+    `;
+
+    // AI Coach Button Logic
+    const btnAnalyze = document.getElementById("btn-analyze-spending");
+    if (btnAnalyze) {
+      btnAnalyze.addEventListener("click", async () => {
+        // Prevent click if offline
+        if (!navigator.onLine) {
+          alert("AI Coach is not available while offline.");
+          return;
+        }
+
+        const container = document.getElementById("ai-insights-container");
+        const loading = document.getElementById("ai-insights-loading");
+        const errorEl = document.getElementById("ai-insights-error");
+        const list = document.getElementById("ai-insights-list");
+
+        // UI Reset
+        container.classList.remove("hidden");
+        loading.classList.remove("hidden");
+        errorEl.classList.add("hidden");
+        list.classList.add("hidden");
+        btnAnalyze.disabled = true;
+
+        try {
+          const cacheKeySummary = `analytics_summary_${state.timeFrame}`;
+          const cacheKeyCategory = `analytics_category_${state.timeFrame}`;
+          const summary = JSON.parse(localStorage.getItem(cacheKeySummary) || "{}");
+          const category = JSON.parse(localStorage.getItem(cacheKeyCategory) || "[]");
+          
+          const payload = {
+            timeFrame: state.timeFrame,
+            summary,
+            expensesByCategory: category
+          };
+
+          const result = await api.fetchAiInsights(payload);
+          loading.classList.add("hidden");
+          ui.renderAiInsights(result.advice);
+        } catch (error) {
+          loading.classList.add("hidden");
+          errorEl.textContent = error.message;
+          errorEl.classList.remove("hidden");
+        } finally {
+          btnAnalyze.disabled = false;
+        }
+      });
+    }
+  };
+
+  const renderOfflineAiCoach = () => {
+    const section = document.getElementById("ai-coach-section");
+    if (!section) return;
+    section.innerHTML = `
+      <div class="animate-slide-down flex items-center gap-4 bg-amber-50 dark:bg-amber-900/20
+                  border border-amber-200 dark:border-amber-700/50 rounded-lg px-5 py-4">
+        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/40
+                    flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M18.364 5.636a9 9 0 010 12.728M15.536 8.464a5 5 0 010 7.072
+                 M12 11a1 1 0 100 2 1 1 0 000-2z"
+            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-amber-800 dark:text-amber-300 text-sm">AI Coach unavailable offline</p>
+          <p class="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+            The Financial Coach requires an internet connection to analyze your data.
+          </p>
+        </div>
+      </div>
+    `;
+  };
+
   const setupPwaNetworkListeners = () => {
     const applyNetworkState = (isOnline) => {
       if (elements.offlineDot) {
         elements.offlineDot.classList.toggle("hidden", isOnline);
         elements.offlineDot.classList.toggle("flex", !isOnline);
+      }
+      if (isOnline) {
+        renderOnlineAiCoach();
+      } else {
+        renderOfflineAiCoach();
       }
     };
 

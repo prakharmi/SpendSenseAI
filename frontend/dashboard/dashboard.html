@@ -41,9 +41,11 @@
     <!-- Blocking script to prevent FOUC (Flash of Unstyled Content) for Dark Mode -->
     <script>
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.backgroundColor = '#0f172a';
       } else {
-        document.documentElement.classList.remove('dark')
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.backgroundColor = '#f9fafb';
       }
     </script>
   </head>
@@ -125,109 +127,109 @@
           </h1>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700/50">
           <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
             Add New Transaction
           </h2>
-          <form id="transaction-form">
-            <div
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end"
-            >
-              <div class="lg:col-span-1">
-                <label
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Type</label
-                >
-                <div
-                  class="mt-1 flex rounded-md bg-gray-100 dark:bg-slate-700 p-1"
-                >
-                  <button
-                    type="button"
-                    data-type="expense"
-                    class="transaction-type-btn flex-1 px-3 py-1.5 text-sm font-semibold rounded-md bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-white"
-                  >
-                    Expense
-                  </button>
-                  <button
-                    type="button"
-                    data-type="income"
-                    class="transaction-type-btn flex-1 px-3 py-1.5 text-sm font-semibold rounded-md text-gray-500 dark:text-gray-400"
-                  >
-                    Income
-                  </button>
-                </div>
-              </div>
-              <div class="md:col-span-2 lg:col-span-1">
-                <label
-                  for="description"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Description</label
-                >
-                <input
-                  type="text"
-                  name="description"
-                  id="description"
-                  required
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  for="amount"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Amount (Rs.)</label
-                >
-                <input
-                  type="number"
-                  name="amount"
-                  id="amount"
-                  required
-                  step="0.01"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  for="date"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Date</label
-                >
-                <input
-                  type="date"
-                  name="date"
-                  id="date"
-                  required
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  for="category"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Category</label
-                >
-                <select
-                  id="category"
-                  name="category"
-                  required
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  <option value="Food" selected>Food</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Groceries">Groceries</option>
-                  <option value="Utility">Utility</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                class="w-full bg-gray-800 hover:bg-gray-900 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 dark:focus:ring-blue-500"
+            <form id="transaction-form">
+              <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end"
               >
-                Add
-              </button>
-            </div>
-          </form>
+                <div class="lg:col-span-1">
+                  <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Type</label
+                  >
+                  <div
+                    class="mt-1 flex rounded-md bg-gray-100 dark:bg-slate-700/50 p-1"
+                  >
+                    <button
+                      type="button"
+                      data-type="expense"
+                      class="transaction-type-btn flex-1 px-3 py-1.5 text-sm font-semibold rounded-md bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-white transition-all"
+                    >
+                      Expense
+                    </button>
+                    <button
+                      type="button"
+                      data-type="income"
+                      class="transaction-type-btn flex-1 px-3 py-1.5 text-sm font-semibold rounded-md text-gray-500 dark:text-gray-400 transition-all hover:text-gray-700 dark:hover:text-gray-200"
+                    >
+                      Income
+                    </button>
+                  </div>
+                </div>
+                <div class="md:col-span-2 lg:col-span-1">
+                  <label
+                    for="description"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Description</label
+                  >
+                  <input
+                    type="text"
+                    name="description"
+                    id="description"
+                    required
+                    class="mt-1 block w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-700 sm:text-sm transition-all duration-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="amount"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Amount (Rs.)</label
+                  >
+                  <input
+                    type="number"
+                    name="amount"
+                    id="amount"
+                    required
+                    step="0.01"
+                    class="mt-1 block w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-700 sm:text-sm transition-all duration-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="date"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Date</label
+                  >
+                  <input
+                    type="date"
+                    name="date"
+                    id="date"
+                    required
+                    class="mt-1 block w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-700 sm:text-sm transition-all duration-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="category"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Category</label
+                  >
+                  <select
+                    id="category"
+                    name="category"
+                    required
+                    class="mt-1 block w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 py-2 px-3 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-700 sm:text-sm transition-all duration-200 outline-none"
+                  >
+                    <option value="Food" selected>Food</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Utility">Utility</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  class="w-full bg-gray-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
         </div>
 
         <!-- AI Upload Section — content controlled by JS based on online/offline state -->

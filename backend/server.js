@@ -11,6 +11,7 @@ const rateLimit = require("express-rate-limit");
 const MongoStore = require("connect-mongo");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
+const compression = require("compression");
 
 // Load environment variables
 dotenv.config();
@@ -45,6 +46,10 @@ const transactionRoutes = require("./routes/transactions");
 const { isLoggedIn } = require("./middleware/authMiddleware");
 
 const app = express();
+
+// Compress all responses to reduce payload size and speed up network requests
+app.use(compression());
+
 // Required for accurate IP detection behind Render's reverse proxy
 app.set("trust proxy", 1);
 
@@ -201,6 +206,15 @@ const aiLimiter = rateLimit({
   message: { message: "AI processing limit reached. Please try again in 15 minutes." },
 });
 
+// AI Coach limiter: 3 req / 24 hours per IP
+const aiCoachLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "You have reached your daily limit of 3 AI analyses. Please try again tomorrow." },
+});
+
 // ---------------------------------------------------------------------------
 // Session — secure configuration
 // ---------------------------------------------------------------------------
@@ -242,6 +256,7 @@ app.get("/pleasedontsleep", (req, res) => {
 app.use("/auth", authLimiter, authRoutes);
 app.use("/api/transactions/upload-receipt", aiLimiter);
 app.use("/api/transactions/import-pdf", aiLimiter);
+app.use("/api/analytics/coach", aiCoachLimiter);
 app.use("/api", apiLimiter);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/analytics", analyticsRoutes);

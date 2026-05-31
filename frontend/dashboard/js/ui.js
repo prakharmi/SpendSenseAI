@@ -30,7 +30,7 @@ export const renderTransactionsList = (container, transactions) => {
   }
   const listContainer = document.createElement("div");
   listContainer.className = "space-y-3";
-  transactions.forEach((t) => {
+  transactions.forEach((t, index) => {
     const date = new Date(t.date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -47,8 +47,10 @@ export const renderTransactionsList = (container, transactions) => {
       : '';
 
     const el = document.createElement("div");
+    // Add staggered fade-in-up animation with enhanced hover and border transitions
     el.className =
-      "bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm flex items-center justify-between transition-transform transform hover:scale-[1.02]" + (t.isOffline ? " opacity-80" : "");
+      "opacity-0 animate-fade-in-up bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-700 hover:shadow-md flex items-center justify-between transition-all duration-200 transform hover:-translate-y-0.5" + (t.isOffline ? " opacity-80" : "");
+    el.style.animationDelay = `${index * 50}ms`;
 
     // Safe static HTML — no user data interpolated here
     el.innerHTML = `
@@ -99,7 +101,7 @@ export const createDropdown = (name, options, defaultLabel, onSelect) => {
   const button = document.createElement("button");
   button.type = "button";
   button.className =
-    "inline-flex items-center justify-center w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none";
+    "inline-flex items-center justify-center w-full rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm px-4 py-2 bg-gray-50 dark:bg-slate-700/50 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-600 hover:shadow focus:outline-none transition-all duration-200";
   button.innerHTML = `<span id="${sanitize(name)}-label">${sanitize(defaultLabel)}</span><svg class="-mr-1 ml-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
   const menu = document.createElement("div");
   menu.className =
@@ -143,14 +145,16 @@ export const renderProfileButton = (container, user) => {
     user.image ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random&color=fff`;
 
-  container.innerHTML = `
+    container.innerHTML = `
         <div class="relative">
             <button id="profile-menu-button" type="button" class="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-slate-800 focus:ring-blue-500">
-                <img class="h-8 w-8 rounded-full object-cover" src="${sanitize(userPicture)}" alt="User profile">
+                <img class="h-8 w-8 rounded-full object-cover" src="${userPicture}" alt="User profile">
             </button>
             <div id="profile-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black dark:ring-white ring-opacity-5 py-1 z-20">
                 <a href="/analytics" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">Analytics</a>
                 <a href="/auth/logout" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">Logout</a>
+                <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                <a href="#" id="delete-account-btn" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium">Delete Account</a>
             </div>
         </div>
     `;
@@ -162,6 +166,27 @@ export const renderProfileButton = (container, user) => {
       if (document.getElementById("theme-menu"))
         document.getElementById("theme-menu").classList.add("hidden");
       profileMenu.classList.toggle("hidden");
+    });
+  }
+
+  const deleteBtn = document.getElementById("delete-account-btn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const confirmed = prompt("WARNING: This will permanently delete your account and all your transactions.\n\nType 'DELETE' to confirm:");
+      if (confirmed === 'DELETE') {
+        try {
+          const res = await fetch("/auth/account", { method: "DELETE" });
+          if (res.ok) {
+            window.location.href = "/";
+          } else {
+            alert("Failed to delete account. Please try again.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Error connecting to server to delete account.");
+        }
+      }
     });
   }
 };

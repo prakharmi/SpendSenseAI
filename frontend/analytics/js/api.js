@@ -57,3 +57,22 @@ export const fetchCategoryTrend = async (categoryName) => {
   if (!response.ok) throw new Error("Failed to fetch category trend");
   return await response.json();
 };
+
+// Fetches AI financial advice based on the user's data
+export const fetchAiInsights = async (summaryData) => {
+  const response = await fetch(`${BASE_URL}/api/analytics/coach`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ summaryData }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(errData?.message || "Failed to generate AI insights.");
+  }
+  
+  return await response.json();
+};
