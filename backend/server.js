@@ -274,14 +274,14 @@ app.get("/", (req, res) => {
   }
 });
 
-// Auth-guarded page routes — isLoggedIn redirects to "/" if not authenticated
-app.get("/dashboard", isLoggedIn, (req, res) => {
+// Auth-guarded page routes — frontend JS handles redirection if not authenticated
+app.get("/dashboard", (req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "frontend", "dashboard", "dashboard.html"),
   );
 });
 
-app.get("/analytics", isLoggedIn, (req, res) => {
+app.get("/analytics", (req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "frontend", "analytics", "analytics.html"),
   );
@@ -299,8 +299,8 @@ app.use(
     lastModified: true,
     setHeaders: (res, filePath) => {
       if (filePath.endsWith(".html")) {
-        // Never cache HTML — ensures users always get fresh auth-guarded page checks
-        res.setHeader("Cache-Control", "no-store");
+        // Do not cache HTML in browser memory so we always get fresh shell, but allow SW to cache it
+        res.setHeader("Cache-Control", "no-cache");
       } else if (filePath.endsWith("sw.js")) {
         // Service worker MUST NOT be cached — browser needs to check for updates on every load.
         // If cached, a bug in the SW would be permanently stuck with no way to update.

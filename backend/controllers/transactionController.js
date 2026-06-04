@@ -97,7 +97,7 @@ exports.getTransactions = async (req, res) => {
 
     const [totalTransactions, transactions] = await Promise.all([
       Transaction.countDocuments(filter),
-      Transaction.find(filter).sort({ date: -1 }).skip(skip).limit(limitNum),
+      Transaction.find(filter).sort({ date: -1, _id: -1 }).skip(skip).limit(limitNum),
     ]);
 
     const totalPages = Math.ceil(totalTransactions / limitNum);

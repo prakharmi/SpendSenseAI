@@ -12,14 +12,14 @@
  *   - API data must be fresh → no SW caching (backend TTL + localStorage SWR handle it)
  */
 
-const CACHE_NAME = "spendsense-shell-v2";
+const CACHE_NAME = "spendsense-shell-v4";
 
 // Static assets that form the "App Shell" — everything needed to render the UI
 // These are cached on install and served instantly on repeat visits
 const APP_SHELL = [
-  "/",
-  "/dashboard",
-  "/analytics",
+  "/index.html",
+  "/dashboard/dashboard.html",
+  "/analytics/analytics.html",
   "/output.css",
   "/manifest.json",
   "/icons/icon-192.png",
@@ -95,23 +95,34 @@ self.addEventListener("fetch", (event) => {
 
   // HTML pages → Network First with Cache Fallback
   // Try network (gets fresh auth-guarded HTML), fall back to cache if offline
-  if (request.headers.get("accept")?.includes("text/html")) {
+  if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
       fetch(request)
         .then((response) => {
           // Clone and cache the fresh response for offline use
-          if (response.ok) {
+          if (response.ok && !response.redirected) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            let cacheKey = url.pathname;
+            if (cacheKey === "/" || cacheKey === "") cacheKey = "/index.html";
+            else if (cacheKey === "/dashboard") cacheKey = "/dashboard/dashboard.html";
+            else if (cacheKey === "/analytics") cacheKey = "/analytics/analytics.html";
+            // Cache by mapped pathname to ignore query strings like ?source=pwa
+            caches.open(CACHE_NAME).then((cache) => cache.put(cacheKey, clone));
           }
           return response;
         })
         .catch(() => {
           // Offline — serve from cache
-          return caches.match(request).then((cached) => {
+          let cacheKey = url.pathname;
+          if (cacheKey === "/" || cacheKey === "") cacheKey = "/index.html";
+          else if (cacheKey === "/dashboard") cacheKey = "/dashboard/dashboard.html";
+          else if (cacheKey === "/analytics") cacheKey = "/analytics/analytics.html";
+
+          // Use ignoreSearch to ignore query strings
+          return caches.match(cacheKey, { ignoreSearch: true }).then((cached) => {
             if (cached) return cached;
-            // If even the cache doesn't have it, serve the root (shows login page)
-            return caches.match("/");
+            // If even the exact cache doesn't have it, serve the root
+            return caches.match("/index.html", { ignoreSearch: true });
           });
         })
     );
@@ -121,7 +132,7 @@ self.addEventListener("fetch", (event) => {
   // Static assets (CSS, JS, images, fonts) → Cache First with Network Fallback
   // These have 1h Cache-Control headers on the server too — double layer
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.match(request, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;
 
       // Cache miss → fetch from network and store for next time
