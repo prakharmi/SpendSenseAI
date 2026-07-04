@@ -3,6 +3,8 @@
 import * as api from "./api.js";
 import * as ui from "./ui.js";
 import * as db from "./db.js";
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
+import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm";
 
 document.addEventListener("DOMContentLoaded", () => {
   // Current State Management
@@ -26,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pageInfo: document.getElementById("page-info"),
     prevPageBtn: document.getElementById("prev-page-btn"),
     nextPageBtn: document.getElementById("next-page-btn"),
+    exportPassbookBtn: document.getElementById("export-passbook-btn"),
     // Note: receiptUploadInput and pdfUploadInput are NOT here
     // because they are rendered dynamically by setupPwaNetworkListeners
     receiptModal: document.getElementById("receipt-confirmation-modal"),
@@ -616,6 +619,73 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // Sets up the PDF export logic
+  const setupExportPassbookListener = () => {
+    if (!elements.exportPassbookBtn) return;
+    
+    elements.exportPassbookBtn.addEventListener("click", async () => {
+      try {
+        ui.showToast("Generating Passbook...", "info");
+        // We use fetch directly to avoid modifying api.js state handling, asking for 100,000 txs to ensure all
+        const response = await fetch('/api/transactions?page=1&limit=100000&type=all&category=all&dateRange=all', { credentials: "include" });
+        if (!response.ok) throw new Error("Failed to fetch data for export");
+        const data = await response.json();
+        
+        const transactions = data.transactions;
+        if (!transactions || transactions.length === 0) {
+          ui.showToast("No transactions to export.", "warning");
+          return;
+        }
+
+        // The API returns newest first. Reverse to get chronological order (oldest first)
+        transactions.reverse();
+        
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text("SpendSenseAI Passbook", 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+        
+        let currentBalance = 0;
+        const tableData = transactions.map(tx => {
+          const isIncome = tx.type === 'income';
+          currentBalance += isIncome ? tx.amount : -tx.amount;
+          
+          return [
+            new Date(tx.date).toLocaleDateString(),
+            tx.description,
+            tx.category,
+            !isIncome ? `Rs. ${tx.amount.toFixed(2)}` : '-',
+            isIncome ? `Rs. ${tx.amount.toFixed(2)}` : '-',
+            `Rs. ${currentBalance.toFixed(2)}`
+          ];
+        });
+        
+        autoTable(doc, {
+          startY: 40,
+          head: [['Date', 'Description', 'Category', 'Debit (-)', 'Credit (+)', 'Balance']],
+          body: tableData,
+          theme: 'striped',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [15, 23, 42] }, // slate-900
+          columnStyles: {
+            3: { halign: 'right' },
+            4: { halign: 'right' },
+            5: { halign: 'right', fontStyle: 'bold' }
+          }
+        });
+        
+        doc.save("SpendSense_Passbook.pdf");
+        ui.showToast("Passbook downloaded successfully!", "success");
+      } catch (error) {
+        console.error("Export error:", error);
+        ui.showToast("Error generating passbook.", "error");
+      }
+    });
+  };
+
   // ---------------------------------------------------------------------------
   // PWA Offline / Online Network Listeners
   //
@@ -768,6 +838,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // inside setupPwaNetworkListeners() — don't call it here to avoid double-binding
       setupModalListeners();
       setupListAndPaginationListeners();
+      setupExportPassbookListener();
       setupPwaNetworkListeners();
 
       await populateFilters();

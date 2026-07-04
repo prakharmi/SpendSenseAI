@@ -65,6 +65,7 @@ app.use(
         scriptSrc: [
           "'self'",
           "https://cdn.jsdelivr.net", // Chart.js CDN
+          "https://cdnjs.cloudflare.com", // jsPDF CDN
         ],
         styleSrc: [
           "'self'",
