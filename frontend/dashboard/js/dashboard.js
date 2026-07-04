@@ -3,8 +3,6 @@
 import * as api from "./api.js";
 import * as ui from "./ui.js";
 import * as db from "./db.js";
-import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
-import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm";
 
 document.addEventListener("DOMContentLoaded", () => {
   // Current State Management
@@ -619,6 +617,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // Helper to dynamically load external scripts
+  const loadScript = (src) => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
   // Sets up the PDF export logic
   const setupExportPassbookListener = () => {
     if (!elements.exportPassbookBtn) return;
@@ -626,12 +633,33 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.exportPassbookBtn.addEventListener("click", async () => {
       try {
         ui.showToast("Generating Passbook...", "info");
-        // We use fetch directly to avoid modifying api.js state handling, asking for 100,000 txs to ensure all
-        const response = await fetch('/api/transactions?page=1&limit=100000&type=all&category=all&dateRange=all', { credentials: "include" });
-        if (!response.ok) throw new Error("Failed to fetch data for export");
-        const data = await response.json();
         
-        const transactions = data.transactions;
+        // Dynamically load PDF libraries if not already loaded
+        if (!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.jsPDF.prototype.autoTable) {
+          await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+          // jsPDF-autotable expects 'jsPDF' to be on the window object
+          window.jsPDF = window.jspdf.jsPDF;
+          await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+        }
+        // We use a loop to fetch past 3 months of data securely at 100 items per page
+        let allTransactions = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        do {
+          const response = await fetch(`/api/transactions?page=${currentPage}&limit=100&type=all&category=all&dateRange=3months`, { credentials: "include" });
+          if (!response.ok) throw new Error("Failed to fetch data for export");
+          
+          const data = await response.json();
+          if (data.transactions && data.transactions.length > 0) {
+            allTransactions = allTransactions.concat(data.transactions);
+          }
+          totalPages = data.totalPages || 1;
+          currentPage++;
+        } while (currentPage <= totalPages);
+        
+        const transactions = allTransactions;
+        
         if (!transactions || transactions.length === 0) {
           ui.showToast("No transactions to export.", "warning");
           return;
@@ -640,7 +668,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // The API returns newest first. Reverse to get chronological order (oldest first)
         transactions.reverse();
         
-        const doc = new jsPDF();
+        const doc = new window.jspdf.jsPDF();
         
         doc.setFontSize(18);
         doc.text("SpendSenseAI Passbook", 14, 22);
@@ -655,15 +683,15 @@ document.addEventListener("DOMContentLoaded", () => {
           
           return [
             new Date(tx.date).toLocaleDateString(),
-            tx.description,
-            tx.category,
+            tx.description || '-',
+            tx.category || '-',
             !isIncome ? `Rs. ${tx.amount.toFixed(2)}` : '-',
             isIncome ? `Rs. ${tx.amount.toFixed(2)}` : '-',
             `Rs. ${currentBalance.toFixed(2)}`
           ];
         });
         
-        autoTable(doc, {
+        doc.autoTable({
           startY: 40,
           head: [['Date', 'Description', 'Category', 'Debit (-)', 'Credit (+)', 'Balance']],
           body: tableData,
@@ -681,7 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.showToast("Passbook downloaded successfully!", "success");
       } catch (error) {
         console.error("Export error:", error);
-        ui.showToast("Error generating passbook.", "error");
+        ui.showToast(`Error: ${error.message || "Failed to generate passbook"}`, "error");
       }
     });
   };

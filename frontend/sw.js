@@ -12,7 +12,7 @@
  *   - API data must be fresh → no SW caching (backend TTL + localStorage SWR handle it)
  */
 
-const CACHE_NAME = "spendsense-shell-v4";
+const CACHE_NAME = "spendsense-shell-v9";
 
 // Static assets that form the "App Shell" — everything needed to render the UI
 // These are cached on install and served instantly on repeat visits
